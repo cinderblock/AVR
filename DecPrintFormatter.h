@@ -64,8 +64,6 @@ private:
  }
 };
 
-extern DecPrintFormatter dformat;
-
 #endif	/* DECPRINTFORMATTER_H */
 
 };

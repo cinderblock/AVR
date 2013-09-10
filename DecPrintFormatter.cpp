@@ -14,8 +14,6 @@
 
 using namespace AVR;
 
-DecPrintFormatter dformat(&USART::send);
-
 DecPrintFormatter::DecPrintFormatter(void (*const dest)(u1 const byte)) : destination(dest) {
  
 }

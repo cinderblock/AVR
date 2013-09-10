@@ -7,6 +7,15 @@
     <logicalFolder name="HeaderFiles"
                    displayName="Header Files"
                    projectFiles="true">
+      <itemPath>Clock.h</itemPath>
+      <itemPath>DecPrintFormatter.h</itemPath>
+      <itemPath>IOpin.h</itemPath>
+      <itemPath>Timer.h</itemPath>
+      <itemPath>USART.h</itemPath>
+      <itemPath>WDT.h</itemPath>
+      <itemPath>basicTypes.h</itemPath>
+      <itemPath>bigTypes.h</itemPath>
+      <itemPath>bitTypes.h</itemPath>
     </logicalFolder>
     <logicalFolder name="ResourceFiles"
                    displayName="Resource Files"
@@ -15,15 +24,9 @@
     <logicalFolder name="SourceFiles"
                    displayName="Source Files"
                    projectFiles="true">
+      <itemPath>Clock.cpp</itemPath>
       <itemPath>DecPrintFormatter.cpp</itemPath>
-      <itemPath>DecPrintFormatter.h</itemPath>
-      <itemPath>IOpin.h</itemPath>
       <itemPath>USART.cpp</itemPath>
-      <itemPath>USART.h</itemPath>
-      <itemPath>WDT.h</itemPath>
-      <itemPath>basicTypes.h</itemPath>
-      <itemPath>bigTypes.h</itemPath>
-      <itemPath>bitTypes.h</itemPath>
     </logicalFolder>
     <logicalFolder name="TestFiles"
                    displayName="Test Files"
@@ -48,6 +51,10 @@
       </toolsSet>
       <compileType>
       </compileType>
+      <item path="Clock.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="Clock.h" ex="false" tool="3" flavor2="0">
+      </item>
       <item path="DecPrintFormatter.cpp" ex="false" tool="1" flavor2="0">
       </item>
       <item path="DecPrintFormatter.h" ex="false" tool="3" flavor2="0">
@@ -55,6 +62,8 @@
       <item path="IOpin.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="README.md" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="Timer.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="USART.cpp" ex="false" tool="1" flavor2="0">
       </item>
@@ -90,6 +99,10 @@
           <developmentMode>5</developmentMode>
         </asmTool>
       </compileType>
+      <item path="Clock.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="Clock.h" ex="false" tool="3" flavor2="0">
+      </item>
       <item path="DecPrintFormatter.cpp" ex="false" tool="1" flavor2="0">
       </item>
       <item path="DecPrintFormatter.h" ex="false" tool="3" flavor2="0">
@@ -97,6 +110,8 @@
       <item path="IOpin.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="README.md" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="Timer.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="USART.cpp" ex="false" tool="1" flavor2="0">
       </item>

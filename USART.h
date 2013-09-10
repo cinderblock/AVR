@@ -17,32 +17,32 @@ namespace AVR {
 
 class USART {
 public:
- static void setBRR(u2 BBR) {UBRR1 = BBR;}
- static u2   getBRR(      ) {return UBRR1;}
+ inline static void setBRR(u2 const BBR) {UBRR0 = BBR;}
+ inline static u2   getBRR(      ) {return UBRR0;}
 
- static void set2X() {UCSR1A |=  _BV(U2X1);}
- static void clr2X() {UCSR1A &= ~_BV(U2X1);}
+ inline static void set2X() {UCSR0A |=  _BV(U2X0);}
+ inline static void clr2X() {UCSR0A &= ~_BV(U2X0);}
 
- static void setDataRegister(u1 byte) {UDR1 = byte;}
- static u1   getDataRegister(       ) {return UDR1;}
+ inline static void setDataRegister(u1 const byte) {UDR0 = byte;}
+ inline static u1   getDataRegister(       ) {return UDR0;}
 
- static bool dataRegisterEmpty() {return UCSR1A & _BV(UDRE1);}
- static bool isTxComplete     () {return UCSR1A & _BV(TXC1);}
- static bool isRxComplete     () {return UCSR1A & _BV(RXC1);}
+ inline static bool dataRegisterEmpty() {return UCSR0A & _BV(UDRE0);}
+ inline static bool isTxComplete     () {return UCSR0A & _BV(TXC0);}
+ inline static bool isRxComplete     () {return UCSR0A & _BV(RXC0);}
 
- static void disableTxInt() {UCSR1B &= ~_BV(UDRIE1);}
- static void  enableTxInt() {UCSR1B |=  _BV(UDRIE1);}
+ inline static void disableTxInt() {UCSR0B &= ~_BV(UDRIE0);}
+ inline static void  enableTxInt() {UCSR0B |=  _BV(UDRIE0);}
 
- static void disableRxInt() {UCSR1B &= ~_BV(RXCIE1);}
- static void  enableRxInt() {UCSR1B |=  _BV(RXCIE1);}
+ inline static void disableRxInt() {UCSR0B &= ~_BV(RXCIE0);}
+ inline static void  enableRxInt() {UCSR0B |=  _BV(RXCIE0);}
 
- static void enableTx () {UCSR1B |=  _BV(TXEN1);}
- static void disableTx() {UCSR1B &= ~_BV(TXEN1);}
+ inline static void enableTx () {UCSR0B |=  _BV(TXEN0);}
+ inline static void disableTx() {UCSR0B &= ~_BV(TXEN0);}
  
- static void enableRx () {UCSR1B |=  _BV(RXEN1);}
- static void disableRx() {UCSR1B &= ~_BV(RXEN1);}
+ inline static void enableRx () {UCSR0B |=  _BV(RXEN0);}
+ inline static void disableRx() {UCSR0B &= ~_BV(RXEN0);}
  
- static void enableRxPullUp() {PORTD |= _BV(2);}
+ inline static void enableRxPullUp() {PORTD |= _BV(0);}
  
  static void send(const u1 byte);
  static u1 get();
