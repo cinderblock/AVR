@@ -25,7 +25,7 @@
 namespace AVR {
 
 template <size_t A>
-class USART  {
+class USART {
 public:
  inline static void setBRR(u2 const BBR) {UBRR = BBR;}
  inline static u2   getBRR(     ) {return UBRR;}
@@ -91,23 +91,23 @@ public:
 #undef UDR
 
 #ifdef UCSRA
- extern USART<&UCSRA> usart;
+ extern USART<(size_t)&UCSRA> usart;
 #elif defined(UCSR0A)
- extern USART<&UCSR0A> usart;
+ extern USART<(size_t)&UCSR0A> usart;
 #elif defined(UCSR1A)
- extern USART<&UCSR1A> usart;
+ extern USART<(size_t)&UCSR1A> usart;
 #endif
  
 #if defined(UCSR1A) && (defined(UCSRA) || defined(UCSR0A))
-  extern USART<&UCSR1A> usart1;
+  extern USART<(size_t)&UCSR1A> usart1;
 #endif
  
 #ifdef UCSR2A
- extern USART<&UCSR2A> usart2;
+ extern USART<(size_t)&UCSR2A> usart2;
 #endif
  
 #ifdef UCSR3A
- extern USART<&UCSR3A> usart3;
+ extern USART<(size_t)&UCSR3A> usart3;
 #endif
 
 };

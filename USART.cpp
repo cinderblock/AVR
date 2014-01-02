@@ -9,7 +9,26 @@
 
 using namespace AVR;
 
-USART<&UCSR1A> usart;
+
+#ifdef UCSRA
+ USART<(size_t)&UCSRA> usart;
+#elif defined(UCSR0A)
+ USART<(size_t)&UCSR0A> usart;
+#elif defined(UCSR1A)
+ USART<(size_t)&UCSR1A> usart;
+#endif
+ 
+#if defined(UCSR1A) && (defined(UCSRA) || defined(UCSR0A))
+  USART<(size_t)&UCSR1A> usart1;
+#endif
+ 
+#ifdef UCSR2A
+ USART<(size_t)&UCSR2A> usart2;
+#endif
+ 
+#ifdef UCSR3A
+ USART<(size_t)&UCSR3A> usart3;
+#endif
  
 template <size_t A>
 void USART<A>::send(const u1 byte) {
