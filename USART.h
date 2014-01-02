@@ -82,7 +82,36 @@ public:
 
 };
 
-extern USART<&UCSR0A> usart;
+
+#undef UCSRA
+#undef UCSRB
+#undef UCSRC
+#undef UBRR
+#undef UBRRL
+#undef UBRRH
+#undef UDR
+
+#ifdef UCSRA
+ extern USART<&UCSRA> usart;
+#elif UCSR0A
+ extern USART<&UCSR0A> usart;
+#endif
+ 
+#ifdef UCSR1A
+ #if defined(UCSRA) || defined(UCSR0A)
+  extern USART<&UCSR1A> usart1;
+ #else
+  extern USART<&UCSR1A> usart;
+ #endif
+#endif
+ 
+#ifdef UCSR2A
+ extern USART<&UCSR2A> usart2;
+#endif
+ 
+#ifdef UCSR3A
+ extern USART<&UCSR3A> usart3;
+#endif
 
 };
 
