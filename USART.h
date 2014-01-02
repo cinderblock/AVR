@@ -8,6 +8,8 @@
 #ifndef USART_H
 #define	USART_H
 
+#define __AVR_ATmega328P__
+
 #include <avr/io.h>
 #include "basicTypes.h"
 
@@ -15,20 +17,22 @@
 
 namespace AVR {
 
-class USART {
+template <
+ volatile uint8_t * const UCSRA>
+class USART  {
 public:
  inline static void setBRR(u2 const BBR) {UBRR0 = BBR;}
  inline static u2   getBRR(      ) {return UBRR0;}
 
- inline static void set2X() {UCSR0A |=  _BV(U2X0);}
- inline static void clr2X() {UCSR0A &= ~_BV(U2X0);}
+ inline static void set2X() {UCSRA |=  _BV(U2X0);}
+ inline static void clr2X() {UCSRA &= ~_BV(U2X0);}
 
  inline static void setDataRegister(u1 const byte) {UDR0 = byte;}
  inline static u1   getDataRegister(       ) {return UDR0;}
 
- inline static bool dataRegisterEmpty() {return UCSR0A & _BV(UDRE0);}
- inline static bool isTxComplete     () {return UCSR0A & _BV(TXC0);}
- inline static bool isRxComplete     () {return UCSR0A & _BV(RXC0);}
+ inline static bool dataRegisterEmpty() {return UCSRA & _BV(UDRE0);}
+ inline static bool isTxComplete     () {return UCSRA & _BV(TXC0);}
+ inline static bool isRxComplete     () {return UCSRA & _BV(RXC0);}
 
  inline static void disableTxInt() {UCSR0B &= ~_BV(UDRIE0);}
  inline static void  enableTxInt() {UCSR0B |=  _BV(UDRIE0);}
@@ -70,7 +74,7 @@ public:
 
 };
 
-extern USART usart;
+extern USART<&UCSR0A> usart;
 
 };
 

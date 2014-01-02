@@ -6,6 +6,7 @@ ODP ?= avr-objdump
 SZE ?= avr-size
 ARR ?= avr-ar rcs
 NMM ?= avr-nm
+MVV ?= mv
 RMF ?= rm -rf
 MKD ?= mkdir -p
 ECO ?= echo
