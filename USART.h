@@ -8,8 +8,6 @@
 #ifndef USART_H
 #define	USART_H
 
-#define __AVR_ATmega328P__
-
 #include <avr/io.h>
 #include "basicTypes.h"
 
@@ -25,7 +23,7 @@
 
 namespace AVR {
 
-template <volatile uint8_t * const A>
+template <volatile uint8_t * A>
 class USART  {
 public:
  inline static void setBRR(u2 const BBR) {UBRR = BBR;}
@@ -93,7 +91,7 @@ public:
 
 #ifdef UCSRA
  extern USART<&UCSRA> usart;
-#elif UCSR0A
+#elif defined(UCSR0A)
  extern USART<&UCSR0A> usart;
 #endif
  
