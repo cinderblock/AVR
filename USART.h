@@ -31,29 +31,30 @@ public:
  inline static void setBRR(u2 const BBR) {UBRR = BBR;}
  inline static u2   getBRR(     ) {return UBRR;}
 
- inline static void set2X() {UCSRA |=  _BV(U2X0);}
- inline static void clr2X() {UCSRA &= ~_BV(U2X0);}
+ inline static void set2X() {UCSRA |=  0b10;}
+ inline static void clr2X() {UCSRA &= ~0b10;}
 
  inline static void setDataRegister(u1 const byte) {UDR = byte;}
  inline static u1   getDataRegister(      ) {return UDR;}
 
- inline static bool dataRegisterEmpty() {return UCSRA & _BV(UDRE0);}
- inline static bool isTxComplete     () {return UCSRA & _BV(TXC0);}
- inline static bool isRxComplete     () {return UCSRA & _BV(RXC0);}
+ inline static bool dataRegisterEmpty() {return UCSRA & 0b00100000;}
+ inline static bool isTxComplete     () {return UCSRA & 0b01000000;}
+ inline static bool isRxComplete     () {return UCSRA & 0b10000000;}
 
- inline static void disableTxInt() {UCSRB &= ~_BV(UDRIE0);}
- inline static void  enableTxInt() {UCSRB |=  _BV(UDRIE0);}
+ inline static void disableReInt() {UCSRB &= ~0b00100000;}
+ inline static void  enableReInt() {UCSRB |=  0b00100000;}
 
- inline static void disableRxInt() {UCSRB &= ~_BV(RXCIE0);}
- inline static void  enableRxInt() {UCSRB |=  _BV(RXCIE0);}
+ inline static void disableTxInt() {UCSRB &= ~0b01000000;}
+ inline static void  enableTxInt() {UCSRB |=  0b01000000;}
 
- inline static void enableTx () {UCSRB |=  _BV(TXEN0);}
- inline static void disableTx() {UCSRB &= ~_BV(TXEN0);}
+ inline static void disableRxInt() {UCSRB &= ~0b10000000;}
+ inline static void  enableRxInt() {UCSRB |=  0b10000000;}
+
+ inline static void enableTx () {UCSRB |=  0b00001000;}
+ inline static void disableTx() {UCSRB &= ~0b00001000;}
  
- inline static void enableRx () {UCSRB |=  _BV(RXEN0);}
- inline static void disableRx() {UCSRB &= ~_BV(RXEN0);}
- 
- inline static void enableRxPullUp() {PORTD |= _BV(0);}
+ inline static void enableRx () {UCSRB |=  0b00010000;}
+ inline static void disableRx() {UCSRB &= ~0b00010000;}
  
  static void send(const u1 byte);
  static u1 get();
