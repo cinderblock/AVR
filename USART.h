@@ -8,7 +8,10 @@
 #ifndef USART_H
 #define	USART_H
 
+#define __AVR_ATmega32U2__
+
 #include <avr/io.h>
+#include <stddef.h>
 #include "basicTypes.h"
 
 #undef AVR
@@ -23,7 +26,7 @@
 
 namespace AVR {
 
-template <volatile uint8_t * A>
+template <size_t A>
 class USART  {
 public:
  inline static void setBRR(u2 const BBR) {UBRR = BBR;}
@@ -93,14 +96,12 @@ public:
  extern USART<&UCSRA> usart;
 #elif defined(UCSR0A)
  extern USART<&UCSR0A> usart;
+#elif defined(UCSR1A)
+ extern USART<&UCSR1A> usart;
 #endif
  
-#ifdef UCSR1A
- #if defined(UCSRA) || defined(UCSR0A)
+#if defined(UCSR1A) && (defined(UCSRA) || defined(UCSR0A))
   extern USART<&UCSR1A> usart1;
- #else
-  extern USART<&UCSR1A> usart;
- #endif
 #endif
  
 #ifdef UCSR2A
