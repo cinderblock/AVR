@@ -15,36 +15,43 @@
 
 #undef AVR
 
+#define UCSRA  _MMIO_BYTE(A + 0)
+#define UCSRB  _MMIO_BYTE(A + 1)
+#define UCSRC  _MMIO_BYTE(A + 2)
+#define UBBR   _MMIO_WORD(A + 4)
+#define UBBRL  _MMIO_BYTE(A + 4)
+#define UBBRH  _MMIO_BYTE(A + 5)
+#define UDR    _MMIO_BYTE(A + 6)
+
 namespace AVR {
 
-template <
- volatile uint8_t * const UCSRA>
+template <volatile uint8_t * const A>
 class USART  {
 public:
- inline static void setBRR(u2 const BBR) {UBRR0 = BBR;}
- inline static u2   getBRR(      ) {return UBRR0;}
+ inline static void setBRR(u2 const BBR) {UBRR = BBR;}
+ inline static u2   getBRR(     ) {return UBRR;}
 
  inline static void set2X() {UCSRA |=  _BV(U2X0);}
  inline static void clr2X() {UCSRA &= ~_BV(U2X0);}
 
- inline static void setDataRegister(u1 const byte) {UDR0 = byte;}
- inline static u1   getDataRegister(       ) {return UDR0;}
+ inline static void setDataRegister(u1 const byte) {UDR = byte;}
+ inline static u1   getDataRegister(      ) {return UDR;}
 
  inline static bool dataRegisterEmpty() {return UCSRA & _BV(UDRE0);}
  inline static bool isTxComplete     () {return UCSRA & _BV(TXC0);}
  inline static bool isRxComplete     () {return UCSRA & _BV(RXC0);}
 
- inline static void disableTxInt() {UCSR0B &= ~_BV(UDRIE0);}
- inline static void  enableTxInt() {UCSR0B |=  _BV(UDRIE0);}
+ inline static void disableTxInt() {UCSRB &= ~_BV(UDRIE0);}
+ inline static void  enableTxInt() {UCSRB |=  _BV(UDRIE0);}
 
- inline static void disableRxInt() {UCSR0B &= ~_BV(RXCIE0);}
- inline static void  enableRxInt() {UCSR0B |=  _BV(RXCIE0);}
+ inline static void disableRxInt() {UCSRB &= ~_BV(RXCIE0);}
+ inline static void  enableRxInt() {UCSRB |=  _BV(RXCIE0);}
 
- inline static void enableTx () {UCSR0B |=  _BV(TXEN0);}
- inline static void disableTx() {UCSR0B &= ~_BV(TXEN0);}
+ inline static void enableTx () {UCSRB |=  _BV(TXEN0);}
+ inline static void disableTx() {UCSRB &= ~_BV(TXEN0);}
  
- inline static void enableRx () {UCSR0B |=  _BV(RXEN0);}
- inline static void disableRx() {UCSR0B &= ~_BV(RXEN0);}
+ inline static void enableRx () {UCSRB |=  _BV(RXEN0);}
+ inline static void disableRx() {UCSRB &= ~_BV(RXEN0);}
  
  inline static void enableRxPullUp() {PORTD |= _BV(0);}
  
