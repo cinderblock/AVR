@@ -34,7 +34,7 @@ void USART<A>::getBlock(u1 * array, u2 len) {
 }
 
 template <size_t A>
-USART& USART<A>::operator>>(u2 &word) {
+USART<A>& USART<A>::operator>>(u2 &word) {
  word = get() << 8 | get();
  return *this;
 }
@@ -45,12 +45,12 @@ void USART<A>::getLittleEndian(u2 &word) {
 }
 
 template <size_t A>
-USART& USART<A>::operator<<(const u1 byte) {
+USART<A>& USART<A>::operator<<(const u1 byte) {
  send(byte);
  return *this;
 }
 template <size_t A>
-USART& USART<A>::operator<<(const u2 word) {
+USART<A>& USART<A>::operator<<(const u2 word) {
  send(word >> 8);
  send(word);
  
