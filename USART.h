@@ -18,9 +18,9 @@
 #define UCSRA  _MMIO_BYTE(A + 0)
 #define UCSRB  _MMIO_BYTE(A + 1)
 #define UCSRC  _MMIO_BYTE(A + 2)
-#define UBBR   _MMIO_WORD(A + 4)
-#define UBBRL  _MMIO_BYTE(A + 4)
-#define UBBRH  _MMIO_BYTE(A + 5)
+#define UBRR   _MMIO_WORD(A + 4)
+#define UBRRL  _MMIO_BYTE(A + 4)
+#define UBRRH  _MMIO_BYTE(A + 5)
 #define UDR    _MMIO_BYTE(A + 6)
 
 namespace AVR {
