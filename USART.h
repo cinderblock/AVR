@@ -8,8 +8,6 @@
 #ifndef USART_H
 #define	USART_H
 
-#define __AVR_ATmega32U2__
-
 #include <avr/io.h>
 #include <stddef.h>
 #include "basicTypes.h"

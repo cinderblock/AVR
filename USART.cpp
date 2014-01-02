@@ -9,40 +9,48 @@
 
 using namespace AVR;
 
-USART usart;
+USART<&UCSR1A> usart;
  
-void USART::send(const u1 byte) {
+template <size_t A>
+void USART<A>::send(const u1 byte) {
  while (!dataRegisterEmpty());
  setDataRegister(byte);
 }
 
-u1 USART::get() {
+template <size_t A>
+u1 USART<A>::get() {
  while (!isRxComplete());
  return getDataRegister();
 }
 
-void USART::skip(u1 num) {
+template <size_t A>
+void USART<A>::skip(u1 num) {
  while (num--) get();
 }
 
-void USART::getBlock(u1 * array, u2 len) {
+template <size_t A>
+void USART<A>::getBlock(u1 * array, u2 len) {
  while (len--) *array++ = get();
 }
- 
-USART& USART::operator>>(u2 &word) {
+
+template <size_t A>
+USART& USART<A>::operator>>(u2 &word) {
  word = get() << 8 | get();
  return *this;
 }
- 
-void USART::getLittleEndian(u2 &word) {
+
+template <size_t A>
+void USART<A>::getLittleEndian(u2 &word) {
  word = get() | get() << 8;
 }
- 
-USART& USART::operator<<(const u1 byte) {
+
+template <size_t A>
+USART& USART<A>::operator<<(const u1 byte) {
  send(byte);
  return *this;
 }
-USART& USART::operator<<(const u2 word) {
+template <size_t A>
+USART& USART<A>::operator<<(const u2 word) {
  send(word >> 8);
  send(word);
  
