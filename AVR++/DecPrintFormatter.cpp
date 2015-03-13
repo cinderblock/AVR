@@ -67,7 +67,7 @@ void DecPrintFormatter::print(u4 dword) {
  destination(dec(divresult.rem));
 }
 
-void DecPrintFormatter::print(prog_char const * str) {
+void DecPrintFormatter::print(char const * str) {
  char c;
  while (1) {
   c = pgm_read_byte(str++);

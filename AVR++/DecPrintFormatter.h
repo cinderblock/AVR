@@ -30,7 +30,7 @@ public:
  void print(s2 const word);
  void print(s4 const dword);
  
- void print(prog_char const * str);
+ void print(char const * str);
  void print(u1 const * ptr);
  
  inline void print(const bool bl) {print(bl ? '1' : '0');}
@@ -50,7 +50,7 @@ public:
  inline DecPrintFormatter& operator<< (const s2 word) {print(word); return *this;}
  inline DecPrintFormatter& operator<< (const s4 word) {print(word); return *this;}
  
- inline DecPrintFormatter& operator<< (prog_char const * str) {print(str); return *this;}
+ inline DecPrintFormatter& operator<< (char const * str) {print(str); return *this;}
  
  inline DecPrintFormatter& operator<< (u1 const * ptr) {print(ptr); return *this;}
 

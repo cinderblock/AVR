@@ -10,10 +10,6 @@
 
 #include "basicTypes.h"
 
-#undef AVR
-
-namespace AVR {
-
 typedef union {
  struct {
   u1 A;
@@ -31,8 +27,6 @@ typedef union {
  };
  u4 LONG;
 } f4;
-
-};
 
 #endif	/* BIGTYPES_H */
 
