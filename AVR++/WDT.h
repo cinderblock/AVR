@@ -38,16 +38,16 @@ public:
     /**
      * Resets the WDT (call this more often than the timeout!)
      */
-    static INLINE void tick() {wdt_reset();}
+    static inline void tick() {wdt_reset();}
     
     /**
      * Stops the WDT. May not always succeed as WDT can be forced on by fuses
      */
     static inline void stop() {wdt_disable();}
     
-    static INLINE bool isEnabled()          {return bit_is_set(WDTCSR, WDE);}
-    static INLINE bool isInterruptEnabled() {return bit_is_set(WDTCSR, WDIE);}
-    static INLINE void clearResetFlag()     {MCUSR = ~_BV(WDRF);}
+    static inline bool isEnabled()          {return bit_is_set(WDTCSR, WDE);}
+    static inline bool isInterruptEnabled() {return bit_is_set(WDTCSR, WDIE);}
+    static inline void clearResetFlag()     {MCUSR = ~_BV(WDRF);}
 };
 
 };
