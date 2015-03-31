@@ -64,6 +64,6 @@ private:
  }
 };
 
-#endif	/* DECPRINTFORMATTER_H */
-
 };
+
+#endif	/* DECPRINTFORMATTER_H */
