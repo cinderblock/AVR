@@ -58,7 +58,7 @@ namespace AVR {
    struct {
     AutoTriggerSource TriggerSource :4;
     bool :1;
-    bool MUX5 :1;
+    bool MultiplexerBit5 :1;
     bool AnalogComparatorMultiplexerEnable :1;
     bool HighSpeedMode :1;
    };
