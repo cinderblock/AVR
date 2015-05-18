@@ -24,7 +24,7 @@ namespace AVR {
   
   typedef union {
    struct {
-    b5 mux:5;
+    b5 MultiplexerLowBits:5;
     bool LeftAdjust: 1;
     Reference ref: 2;
    };
