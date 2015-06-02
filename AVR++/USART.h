@@ -39,6 +39,8 @@ public:
  inline static bool dataRegisterEmpty() {return UCSRA & 0b00100000;}
  inline static bool isTxComplete     () {return UCSRA & 0b01000000;}
  inline static bool isRxComplete     () {return UCSRA & 0b10000000;}
+ 
+ inline static void clearTxCompleteFlag() {UCSRA = UCSRA;}
 
  inline static void disableReInt() {UCSRB &= ~0b00100000;}
  inline static void  enableReInt() {UCSRB |=  0b00100000;}
@@ -95,7 +97,7 @@ public:
 #elif defined(UCSR0A)
  extern USART<(size_t)&UCSR0A> usart;
 #elif defined(UCSR1A)
- extern USART<(size_t)&UCSR1A> usart;
+// extern USART<(size_t)&UCSR1A> usart;
 #endif
  
 #if defined(UCSR1A) && (defined(UCSRA) || defined(UCSR0A))
