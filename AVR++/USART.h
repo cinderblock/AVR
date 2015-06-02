@@ -97,7 +97,7 @@ public:
 #elif defined(UCSR0A)
  extern USART<(size_t)&UCSR0A> usart;
 #elif defined(UCSR1A)
-// extern USART<(size_t)&UCSR1A> usart;
+ extern USART<(size_t)&UCSR1A> usart;
 #endif
  
 #if defined(UCSR1A) && (defined(UCSRA) || defined(UCSR0A))
@@ -115,4 +115,3 @@ public:
 };
 
 #endif	/* USART_H */
-
