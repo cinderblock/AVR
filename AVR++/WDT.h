@@ -16,7 +16,7 @@ namespace AVR {
 
 class WDT {
 public:
-    enum timeout_e {
+    enum Timeout {
         T0015ms = 0,
         T0030ms = 1,
         T0060ms = 2,
@@ -33,21 +33,21 @@ public:
      * Starts the watchdog timer with timeout t
      * @param t the timeout to wait for
      */
-    static inline void start(timeout_e t) {wdt_enable(t);}
+    static inline void start(Timeout t) {wdt_enable(t);}
     
     /**
      * Resets the WDT (call this more often than the timeout!)
      */
-    static INLINE void tick() {wdt_reset();}
+    static inline void tick() {wdt_reset();}
     
     /**
      * Stops the WDT. May not always succeed as WDT can be forced on by fuses
      */
     static inline void stop() {wdt_disable();}
     
-    static INLINE bool isEnabled()          {return bit_is_set(WDTCSR, WDE);}
-    static INLINE bool isInterruptEnabled() {return bit_is_set(WDTCSR, WDIE);}
-    static INLINE void clearResetFlag()     {MCUSR = ~_BV(WDRF);}
+    static inline bool isEnabled()          {return bit_is_set(WDTCSR, WDE);}
+    static inline bool isInterruptEnabled() {return bit_is_set(WDTCSR, WDIE);}
+    static inline void clearResetFlag()     {MCUSR = ~_BV(WDRF);}
 };
 
 };
