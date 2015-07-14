@@ -43,6 +43,8 @@ inline void tgl() {PIN(port) = mask;}
 /* Returns value of bit in PINx. Not 0 or 1 but 0 or _BV(pin) */
 inline bool isHigh() {return PIN(port) & mask;}
 
+inline bool isDriveHigh() {return PORT(port) & mask;}
+
 /* Turns on() or off() */
 inline void set(bool v) {if (v) on(); else off();}
 inline bool operator= (bool v) {set(v); return v;}
