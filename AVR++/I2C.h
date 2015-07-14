@@ -165,6 +165,8 @@ namespace AVR {
   volatile inline Status getStatus() {
    return (Status)(SR->Status << 3);
   }
+ 
+  inline static bool isFlagSet() {return CR->InterruptFlag;}
   
   class Control {
    const u1 crValueBase;
@@ -184,6 +186,55 @@ namespace AVR {
     CR->byte = crValueBase | (1 << TWEA);
    }
   };
+  
+  inline static void sendByte(u1 const b) {
+   *DR = b;
+  }
+  
+  inline static u1 getByte() {
+   return *DR;
+  }
+  
+  inline static void sendSTART() {
+   CR->byte = 1<<TWINT | 1<<TWEN | 1<<TWSTA;
+  }
+  
+  inline static void sendSTOP() {
+   CR->byte = 1<<TWINT | 1<<TWEN | 1<<TWSTO;
+  }
+  
+  inline static void setupACK() {
+   CR->byte = 1<<TWINT | 1<<TWEN | 1<<TWEA;
+  }
+  
+  inline static void setupNACK() {
+   CR->byte = 1<<TWINT | 1<<TWEN;
+  }
+  
+  inline static void setPrescaler(b2 bits) {
+   // We can be lazy and assign the whole byte since only two bits are writable
+   SR->byte = bits;
+  }
+  
+  inline static void setBitRateRegister(u1 twbr) {
+   *BR = twbr;
+  }
+  
+  inline static bool isWriteAddress(u1 const addr) {
+   return addr & 1 == 0;
+  }
+  
+  inline static bool isReadAddress(u1 const addr) {
+   return addr & 1 == 1;
+  }
+  
+  inline static u1 makeWriteAddress(u1 const addr) {
+   return addr & ~1;
+  }
+  
+  inline static u1 makeReadAddress(u1 const addr) {
+   return addr | 1;
+  }
  };
 };
 
