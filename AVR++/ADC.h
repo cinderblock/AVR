@@ -91,8 +91,6 @@ namespace AVR {
    
    inline void selectWithMux() {MUX->byte = mux;}
   };
-  
-  void init();
  };
 };
 
