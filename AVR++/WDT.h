@@ -16,7 +16,7 @@ namespace AVR {
 
 class WDT {
 public:
-    enum timeout_e {
+    enum Timeout {
         T0015ms = 0,
         T0030ms = 1,
         T0060ms = 2,
@@ -33,7 +33,7 @@ public:
      * Starts the watchdog timer with timeout t
      * @param t the timeout to wait for
      */
-    static inline void start(timeout_e t) {wdt_enable(t);}
+    static inline void start(Timeout t) {wdt_enable(t);}
     
     /**
      * Resets the WDT (call this more often than the timeout!)

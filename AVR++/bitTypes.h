@@ -10,6 +10,8 @@
 
 #include "basicTypes.h"
 
+namespace AVR {
+
 typedef u1 b1;
 typedef u1 b2;
 typedef u1 b3;
@@ -62,6 +64,8 @@ typedef union {
  u1 bits;
  struct {b1 B0:1; b1 B1:1; b1 B2:1; b1 B3:1; b1 B4:1; b1 B5:1; b1 B6:1; b1 B7:1;};
 } bf8;
+
+};
 
 #endif	/* BITTYPES_H */
 
