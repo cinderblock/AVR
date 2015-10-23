@@ -221,11 +221,11 @@ namespace AVR {
   }
   
   inline static bool isWriteAddress(u1 const addr) {
-   return addr & 1 == 0;
+   return (addr & 1) == 0;
   }
   
   inline static bool isReadAddress(u1 const addr) {
-   return addr & 1 == 1;
+   return (addr & 1) == 1;
   }
   
   inline static u1 makeWriteAddress(u1 const addr) {
