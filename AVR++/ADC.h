@@ -12,7 +12,10 @@
 
 #include "bitTypes.h"
 
+// Clear out conflicting Atmel defines
 #undef ADC
+
+// Clear out conflicting gcc defines
 #undef AVR
 
 namespace AVR {
@@ -88,8 +91,6 @@ namespace AVR {
    
    inline void selectWithMux() {MUX->byte = mux;}
   };
-  
-  void init();
  };
 };
 

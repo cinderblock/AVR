@@ -39,6 +39,8 @@ public:
  inline static bool dataRegisterEmpty() {return UCSRA & 0b00100000;}
  inline static bool isTxComplete     () {return UCSRA & 0b01000000;}
  inline static bool isRxComplete     () {return UCSRA & 0b10000000;}
+ 
+ inline static void clearTxCompleteFlag() {UCSRA = UCSRA;}
 
  inline static void disableReInt() {UCSRB &= ~0b00100000;}
  inline static void  enableReInt() {UCSRB |=  0b00100000;}
@@ -113,4 +115,3 @@ public:
 };
 
 #endif	/* USART_H */
-
