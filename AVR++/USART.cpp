@@ -11,23 +11,23 @@ using namespace AVR;
 
 
 #ifdef UCSRA
- USART<(size_t)&UCSRA> usart;
+ USART<(size_t)&UCSRA> AVR::usart;
 #elif defined(UCSR0A)
- USART<(size_t)&UCSR0A> usart;
+ USART<(size_t)&UCSR0A> AVR::usart;
 #elif defined(UCSR1A)
- USART<(size_t)&UCSR1A> usart;
+ USART<(size_t)&UCSR1A> AVR::usart;
 #endif
  
 #if defined(UCSR1A) && (defined(UCSRA) || defined(UCSR0A))
-  USART<(size_t)&UCSR1A> usart1;
+  USART<(size_t)&UCSR1A> AVR::usart1;
 #endif
  
 #ifdef UCSR2A
- USART<(size_t)&UCSR2A> usart2;
+ USART<(size_t)&UCSR2A> AVR::usart2;
 #endif
  
 #ifdef UCSR3A
- USART<(size_t)&UCSR3A> usart3;
+ USART<(size_t)&UCSR3A> AVR::usart3;
 #endif
  
 template <size_t A>
