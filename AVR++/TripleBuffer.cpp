@@ -9,10 +9,6 @@
 
 #include "TripleBuffer.h"
 
-template <u1 size, bool readInterrupt, bool writeInterrupt>
-TripleBuffer<size, readInterrupt, writeInterrupt>::TripleBuffer() :state(State::A) {
-}
-
 template<u1 size, bool readInterrupt, bool writeInterrupt>
 void TripleBuffer<size, readInterrupt, writeInterrupt>::reserveNewestBufferForReading() {
  if (readInterrupt) cli();

@@ -45,7 +45,7 @@ class TripleBuffer {
  State state;
 
 public:
- TripleBuffer();
+ inline TripleBuffer() : state(State::A) {}
 
  /**
   * Reserve the newest block for reading
