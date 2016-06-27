@@ -10,18 +10,6 @@
 #include "BlockBuffer.h"
 
 template<u1 BlockSize, u1 Blocks, bool readInterrupt, bool writeInterrupt>
-u1* BlockBuffer<BlockSize, Blocks, readInterrupt, writeInterrupt>::getReadBuffer() {
-	if (isNewData()) return nullptr;
-	return buffers[currentRead];
-}
-
-template<u1 BlockSize, u1 Blocks, bool readInterrupt, bool writeInterrupt>
-u1* BlockBuffer<BlockSize, Blocks, readInterrupt, writeInterrupt>::getWriteBuffer() {
-	if (hasRoom()) return nullptr;
-	return buffers[currentWrite];
-}
-
-template<u1 BlockSize, u1 Blocks, bool readInterrupt, bool writeInterrupt>
 void BlockBuffer<BlockSize, Blocks, readInterrupt, writeInterrupt>::markNewestBuffer() {
 	if (!hasRoom())
 		return;

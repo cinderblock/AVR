@@ -63,13 +63,17 @@ public:
   * Get the buffer that should be written to
   * @return
   */
- u1 * getWriteBuffer();
+ u1 * getWriteBuffer() {
+		return hasRoom() ? nullptr : buffers[currentWrite];
+	}
 
  /**
   * Get the buffer that should be read from
   * @return
   */
- u1 * getReadBuffer();
+ u1 * getReadBuffer() {
+	 return isNewData() ? nullptr : buffers[currentRead];
+ }
 
 };
 
