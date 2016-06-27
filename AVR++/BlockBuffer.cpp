@@ -11,13 +11,13 @@
 
 template<u1 BlockSize, u1 Blocks, bool readInterrupt, bool writeInterrupt>
 u1* BlockBuffer<BlockSize, Blocks, readInterrupt, writeInterrupt>::getReadBuffer() {
-	if (currentRead == 0xff) return nullptr;
+	if (isNewData()) return nullptr;
 	return buffers[currentRead];
 }
 
 template<u1 BlockSize, u1 Blocks, bool readInterrupt, bool writeInterrupt>
 u1* BlockBuffer<BlockSize, Blocks, readInterrupt, writeInterrupt>::getWriteBuffer() {
-	if (currentWrite = 0xff) return nullptr;
+	if (hasRoom()) return nullptr;
 	return buffers[currentWrite];
 }
 
