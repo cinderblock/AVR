@@ -10,8 +10,8 @@
 #include "BlockBuffer.h"
 
 template<u1 BlockSize, u1 Blocks, bool readInterrupt, bool writeInterrupt>
-void BlockBuffer<BlockSize, Blocks, readInterrupt, writeInterrupt>::markNewestBuffer() {
-	if (!hasRoom())
+void BlockBuffer<BlockSize, Blocks, readInterrupt, writeInterrupt>::markCurrentWriteBufferAsDone() {
+	if (!isWriteableNow())
 		return;
 
 	if (writeInterrupt) cli();
@@ -36,8 +36,8 @@ void BlockBuffer<BlockSize, Blocks, readInterrupt, writeInterrupt>::markNewestBu
 }
 
 template<u1 BlockSize, u1 Blocks, bool readInterrupt, bool writeInterrupt>
-void BlockBuffer<BlockSize, Blocks, readInterrupt, writeInterrupt>::reserveNewestBufferForReading() {
-	if (!isNewData())
+void BlockBuffer<BlockSize, Blocks, readInterrupt, writeInterrupt>::markCurrentReadBufferAsDone() {
+	if (!isReadableNow())
 		return;
 
 	if (readInterrupt) cli();

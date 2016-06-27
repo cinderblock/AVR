@@ -38,33 +38,33 @@ public:
   * Reserve the newest block for reading
   * @return
   */
- void reserveNewestBufferForReading();
+ void markCurrentReadBufferAsDone();
 
  /**
   * Mark the buffer the writer is using as the newest, indicating that data is
   * available and allowing the reader to access the next block
   * @return
   */
- void markNewestBuffer();
+ void markCurrentWriteBufferAsDone();
 
  /**
   * Check if there is new data available for the reader side
   * @return
   */
- inline bool isNewData() {return currentRead < Blocks;}
+ inline bool isReadableNow() {return currentRead < Blocks;}
 
  /**
   * Check if there is room to write another block to the buffer
   * @return
   */
- inline bool hasRoom() {return currentWrite < Blocks;}
+ inline bool isWriteableNow() {return currentWrite < Blocks;}
 
  /**
   * Get the buffer that should be written to
   * @return
   */
  u1 * getWriteBuffer() {
-		return hasRoom() ? nullptr : buffers[currentWrite];
+		return isWriteableNow() ? nullptr : buffers[currentWrite];
 	}
 
  /**
@@ -72,7 +72,7 @@ public:
   * @return
   */
  u1 * getReadBuffer() {
-	 return isNewData() ? nullptr : buffers[currentRead];
+	 return isReadableNow() ? nullptr : buffers[currentRead];
  }
 
 };
