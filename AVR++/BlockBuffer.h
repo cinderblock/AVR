@@ -29,7 +29,7 @@ class BlockBuffer {
  u1 currentRead;
 
 public:
- inline BlockBuffer() : currentRead(0xff), currentWrite(0) {
+ inline BlockBuffer() : currentWrite(0), currentRead(0xff) {
    static_assert(Blocks > 0, "Must use a positive, non-zero number of blocks");
    static_assert(Blocks != 255, "Maximum 254 blocks");
  }
