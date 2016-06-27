@@ -64,7 +64,7 @@ public:
   * @return
   */
  u1 * getWriteBuffer() {
-		return isWriteableNow() ? nullptr : buffers[currentWrite];
+		return isWriteableNow() ? buffers[currentWrite] : nullptr;
 	}
 
  /**
@@ -72,7 +72,7 @@ public:
   * @return
   */
  u1 * getReadBuffer() {
-	 return isReadableNow() ? nullptr : buffers[currentRead];
+	 return isReadableNow() ? buffers[currentRead] : nullptr;
  }
 
 };
