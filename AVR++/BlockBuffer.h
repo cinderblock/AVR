@@ -75,6 +75,14 @@ public:
 	 return isReadableNow() ? buffers[currentRead] : nullptr;
  }
 
+		u1 constexpr getBlocks() {
+				return Blocks;
+		}
+
+		u1 constexpr getBlockSize() {
+				return BlockSize;
+		}
+
 };
 
 #endif	/* BLOCKBUFFER_H */
