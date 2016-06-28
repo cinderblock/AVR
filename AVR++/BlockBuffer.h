@@ -19,13 +19,13 @@ class BlockBuffer {
 			* Index of which buffer we're currently writing to. A special value of 0xff
 			* is used to indicate no room is available
 			*/
-		u1 currentWrite;
+		volatile u1 currentWrite;
 
 		/**
 			* Index of which buffer we're currently reading from. A special value of 0xff
 			* is used to indicate no data is available
 			*/
-		u1 currentRead;
+		volatile u1 currentRead;
 
 	public:
 
