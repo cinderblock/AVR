@@ -51,7 +51,7 @@ class BlockBuffer {
 			* Check if there is new data available for the reader side
 			* @return
 			*/
-		inline bool isReadableNow() {
+		inline bool isReadableNow() const {
 				return currentRead < Blocks;
 		}
 
@@ -59,7 +59,7 @@ class BlockBuffer {
 			* Check if there is room to write another block to the buffer
 			* @return
 			*/
-		inline bool isWriteableNow() {
+		inline bool isWriteableNow() const {
 				return currentWrite < Blocks;
 		}
 
