@@ -21,7 +21,7 @@ void BlockBuffer<BlockSize, Blocks, readInterrupt, writeInterrupt>::markCurrentW
 
 	nextWrite++;
 
-	if (nextWrite > Blocks)
+	if (nextWrite >= Blocks)
 		nextWrite = 0;
 
 	if (currentRead == 0xff)
@@ -47,7 +47,7 @@ void BlockBuffer<BlockSize, Blocks, readInterrupt, writeInterrupt>::markCurrentR
 
 	nextRead++;
 
-	if (nextRead > Blocks)
+	if (nextRead >= Blocks)
 		nextRead = 0;
 
 	if (currentWrite == 0xff)
