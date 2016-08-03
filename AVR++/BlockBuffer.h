@@ -86,6 +86,12 @@ class BlockBuffer {
 		u1 constexpr getBlockSize() {
 				return BlockSize;
 		}
+
+	void fixInvaildState(){
+		if(!isWriteableNow() && !isReadableNow()){
+			currentWrite = 0;
+		}
+	}
 };
 
 #endif	/* BLOCKBUFFER_H */
