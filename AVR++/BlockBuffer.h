@@ -87,11 +87,11 @@ class BlockBuffer {
 				return BlockSize;
 		}
 
-	void fixInvaildState(){
-		if(!isWriteableNow() && !isReadableNow()){
-			currentWrite = 0;
+		void fixInvaildState(){
+			if(!isWriteableNow() && !isReadableNow()){
+				currentWrite = 0;
+			}
 		}
-	}
 };
 
 #endif	/* BLOCKBUFFER_H */
