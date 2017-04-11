@@ -8,7 +8,7 @@
 #ifndef TIMERTIMEOUT_H
 #define	TIMERTIMEOUT_H
 
-#include <basicTypes.h>
+#include "basicTypes.h"
 
 namespace AVR {
 
