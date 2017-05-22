@@ -8,55 +8,85 @@
 #ifndef _IOPIN_H
 #define _IOPIN_H
 
-#include <avr/sfr_defs.h>
-#include "bitTypes.h"
-
-#define PORT(port) _MMIO_BYTE(port - 0)
-#define DDR(port)  _MMIO_BYTE(port - 1)
-#define PIN(port)  _MMIO_BYTE(port - 2)
+#include <avr/io.h>
+#include "Ports.h"
 
 namespace AVR {
 
+template <class port, u1 pin>
 class IOpin {
- 
-volatile u1 * const port;
-u1 const mask;
+  constexpr static volatile u1 * DDR = port::DDR();
+  constexpr static volatile u1 * PIN = port::PIN();
+  constexpr static volatile u1 * PUE = port::PUE();
+  constexpr static volatile u1 * PORT = port::PORT();
+  constexpr static u1 mask = 1 << pin;
 public:
-IOpin(volatile u1 * const port, b3 const pin): port(port), mask(_BV(pin)) {}
+IOpin() {}
 
-/* Sets bit in DDRx */
-inline void output() {DDR(port) |= mask;}
-/* Clears bit in DDRx */
-inline void input() {DDR(port) &= ~mask;}
+/**
+ * Sets bit in DDRx
+ */
+inline static void output() {*DDR |= mask;}
+/**
+ * Clears bit in DDRx
+ */
+inline static void input() {*DDR &= ~mask;}
 
+/**
+ * Sets bit in PUEx
+ */
+inline static void enablePullUp() {*PUE |= mask;}
+/**
+ * Clears bit in PUEx
+ */
+inline static void disablePullUp() {*PUE &= ~mask;}
 
+/**
+ * Sets bit in PORTx
+ */
+inline static void on() {*PORT |= mask;}
 
-/* Sets bit in PORTx */
-inline void on() {PORT(port) |= mask;}
+/**
+ * Clears bit in PORTx
+ */
+inline static void off() {*PORT &= ~mask;}
 
-/* Clears bit in PORTx */
-inline void off() {PORT(port) &= ~mask;}
+/**
+ * Sets bit in PINx
+ */
+inline static void tgl() {*PIN = mask;}
 
-/* Sets bit in PINx */
-inline void tgl() {PIN(port) = mask;}
+/**
+ * Returns value of bit in PINx. Not 0 or 1, 0 or (1 << pin)
+ */
+inline static bool isHigh() {return *PIN & mask;}
 
-/* Returns value of bit in PINx. Not 0 or 1 but 0 or _BV(pin) */
-inline bool isHigh() {return PIN(port) & mask;}
+/**
+ * Returns value of bit in PORTx. Not 0 or 1, 0 or (1 << pin)
+ */
+inline static bool isDriveHigh() {return *PORT & mask;}
 
-inline bool isDriveHigh() {return PORT(port) & mask;}
+/**
+ * Turns on() or off() based on v
+ */
+inline static void set(bool v) {if (v) on(); else off();}
 
-/* Turns on() or off() */
-inline void set(bool v) {if (v) on(); else off();}
+/**
+ * Turns on() or off() based on v
+ */
 inline bool operator= (bool v) {set(v); return v;}
 
+/**
+ * Toggles the output
+ */
 inline void operator! ( ) {tgl();}
+
+/**
+ * Toggles the output
+ */
 inline void operator++ (int) {tgl();}
 };
 
 };
-
-#undef PORT
-#undef DDR
-#undef PIN
 
 #endif /* _IOPIN_H */
