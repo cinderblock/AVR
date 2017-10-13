@@ -61,12 +61,12 @@ inline static void off() {*PORT &= ~mask;}
 inline static void tgl() {*PIN = mask;}
 
 /**
- * Returns value of bit in PINx. Not 0 or 1, 0 or (1 << pin)
+ * Returns value of bit in PINx
  */
 inline static bool isHigh() {return *PIN & mask;}
 
 /**
- * Returns value of bit in PORTx. Not 0 or 1, 0 or (1 << pin)
+ * Returns value of bit in PORTx
  */
 inline static bool isDriveHigh() {return *PORT & mask;}
 
