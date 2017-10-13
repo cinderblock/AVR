@@ -88,17 +88,20 @@ inline bool operator++ (int) {tgl(); return isDriveHigh();}
 
 template <class port, u1 pin, bool inverted = false, bool startOn = false>
 class Output : public IOpin<port, pin> {
+  using IOpin<port, pin>::set;
+  using IOpin<port, pin>::output;
+  using IOpin<port, pin>::isDriveHigh;
 
   public:
     inline Output() {}
     inline static void on() {
-      IOpin<port, pin>::set(!inverted);
+      set(!inverted);
     }
     inline static void off() {
-      IOpin<port, pin>::set(inverted);
+      set(inverted);
     }
     inline static bool isOn() {
-      return IOpin<port, pin>::isDriveHigh() != inverted;
+      return isDriveHigh() != inverted;
     }
 
     /**
@@ -119,17 +122,20 @@ class Output : public IOpin<port, pin> {
 
   static void init() __attribute__((constructor)) {
     set(startOn);
-    IOpin<port, pin>::output();
+    output();
   }
 };
 
 template <class port, u1 pin, bool activeLow = true, bool pullUp = activeLow>
 class Input : public IOpin<port, pin> {
+  using IOpin<port, pin>::setPullUp;
+  using IOpin<port, pin>::isHigh;
+  using IOpin<port, pin>::input;
 
   public:
     inline Input() {}
     inline static bool isActive() {
-      return IOpin<port, pin>::isHigh() != activeLow;
+      return isHigh() != activeLow;
     }
 
     inline operator bool() const {
@@ -139,8 +145,8 @@ class Input : public IOpin<port, pin> {
     private:
 
   static void init() __attribute__((constructor)) {
-    IOpin<port, pin>::input();
-    IOpin<port, pin>::setPullUp(pullUp);
+    input();
+    setPullUp(pullUp);
   }
 };
 
