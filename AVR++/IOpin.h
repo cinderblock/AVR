@@ -21,7 +21,7 @@ class IOpin {
   constexpr static volatile u1 * PORT = port::PORT();
   constexpr static u1 mask = 1 << pin;
 public:
-IOpin() {}
+inline IOpin() {}
 
 /**
  * Sets bit in DDRx
