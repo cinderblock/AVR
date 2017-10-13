@@ -93,13 +93,26 @@ class Output : public IOpin<port, pin> {
   using IOpin<port, pin>::isDriveHigh;
 
   public:
+
     inline Output() {}
+
+    /**
+     * Turns on output, whatever logic level that is
+     */
     inline static void on() {
       set(!inverted);
     }
+
+    /**
+     * Turns off output, whatever logic level that is
+     */
     inline static void off() {
       set(inverted);
     }
+
+    /**
+     * Checks output state, based on if this Output is inverted or not
+     */
     inline static bool isOn() {
       return isDriveHigh() != inverted;
     }
