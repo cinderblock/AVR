@@ -48,12 +48,12 @@ inline static void setPullUp(bool v) {v ? enablePullUp() : disablePullUp();}
 /**
  * Sets bit in PORTx
  */
-inline static void on() {*PORT |= mask;}
+inline static void set() {*PORT |= mask;}
 
 /**
  * Clears bit in PORTx
  */
-inline static void off() {*PORT &= ~mask;}
+inline static void clr() {*PORT &= ~mask;}
 
 /**
  * Sets bit in PINx
@@ -71,20 +71,77 @@ inline static bool isHigh() {return *PIN & mask;}
 inline static bool isDriveHigh() {return *PORT & mask;}
 
 /**
- * Turns on() or off() based on v
+ * set() or clr() based on v
  */
-inline static void set(bool v) {if (v) on(); else off();}
+inline static void set(bool v) {v ? set() : clr();}
 
 /**
- * Turns on() or off() based on v
+ * set() or clr() based on v
  */
 inline bool operator= (bool v) {set(v); return v;}
 
 /**
  * Toggles the output
  */
+inline bool operator++ (int) {tgl(); return isDriveHigh();}
+};
 
-inline void operator++ (int) {tgl();}
+template <class port, u1 pin, bool inverted = false, bool startOn = false>
+class Output : public IOpin<port, pin> {
+
+  public:
+    inline Output() {}
+    inline static void on() {
+      IOpin<port, pin>::set(!inverted);
+    }
+    inline static void off() {
+      IOpin<port, pin>::set(inverted);
+    }
+    inline static bool isOn() {
+      return IOpin<port, pin>::isDriveHigh() != inverted;
+    }
+
+    /**
+     * Turns on() or off() based on v
+     */
+    inline static void set(bool v) {v ? on() : off();}
+
+    /**
+     * Turns on() or off() based on v
+     */
+    inline bool operator= (bool v) {set(v); return v;}
+
+    inline operator bool() const {
+      return isOn();
+    }
+
+    private:
+
+  static void init() __attribute__((constructor)) {
+    set(startOn);
+    IOpin<port, pin>::output();
+  }
+};
+
+template <class port, u1 pin, bool activeLow = true, bool pullUp = activeLow>
+class Input : public IOpin<port, pin> {
+
+  public:
+    inline Input() {}
+    inline static bool isActive() {
+      return IOpin<port, pin>::isHigh() != activeLow;
+    }
+
+    inline operator bool() const {
+      return isActive();
+    }
+
+    private:
+
+  static void init() __attribute__((constructor)) {
+    IOpin<port, pin>::input();
+    IOpin<port, pin>::setPullUp(pullUp);
+  }
 };
 
 };
