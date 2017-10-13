@@ -17,9 +17,13 @@ namespace AVR {
       constexpr static volatile u1* PORT() {return &PORTA;}
       constexpr static volatile u1* PIN() {return &PINA;}
       constexpr static volatile u1* DDR() {return &DDRA;}
-      #ifdef PUEA
-      constexpr static volatile u1* PUE() {return &PUEA;}
-      #endif
+      constexpr static volatile u1* PUE() {
+        #ifdef PUEA
+          return &PUEA;
+        #else
+          return &PORTA;
+        #endif
+      }
     };
     #endif
     #ifdef PORTB
@@ -27,9 +31,13 @@ namespace AVR {
       constexpr static volatile u1* PORT() {return &PORTB;}
       constexpr static volatile u1* PIN() {return &PINB;}
       constexpr static volatile u1* DDR() {return &DDRB;}
-      #ifdef PUEB
-      constexpr static volatile u1* PUE() {return &PUEB;}
-      #endif
+      constexpr static volatile u1* PUE() {
+        #ifdef PUEB
+          return &PUEB;
+        #else
+          return &PORTB;
+        #endif
+      }
     };
     #endif
     #ifdef PORTC
@@ -37,9 +45,13 @@ namespace AVR {
       constexpr static volatile u1* PORT() {return &PORTC;}
       constexpr static volatile u1* PIN() {return &PINC;}
       constexpr static volatile u1* DDR() {return &DDRC;}
-      #ifdef PUEC
-      constexpr static volatile u1* PUE() {return &PUEC;}
-      #endif
+      constexpr static volatile u1* PUE() {
+        #ifdef PUEC
+          return &PUEC;
+        #else
+          return &PORTC;
+        #endif
+      }
     };
     #endif
     #ifdef PORTD
@@ -47,9 +59,13 @@ namespace AVR {
       constexpr static volatile u1* PORT() {return &PORTD;}
       constexpr static volatile u1* PIN() {return &PIND;}
       constexpr static volatile u1* DDR() {return &DDRD;}
-      #ifdef PUED
-      constexpr static volatile u1* PUE() {return &PUED;}
-      #endif
+      constexpr static volatile u1* PUE() {
+        #ifdef PUED
+          return &PUED;
+        #else
+          return &PORTD;
+        #endif
+      }
     };
     #endif
     #ifdef PORTE
@@ -57,9 +73,13 @@ namespace AVR {
       constexpr static volatile u1* PORT() {return &PORTE;}
       constexpr static volatile u1* PIN() {return &PINE;}
       constexpr static volatile u1* DDR() {return &DDRE;}
-      #ifdef PUEE
-      constexpr static volatile u1* PUE() {return &PUEE;}
-      #endif
+      constexpr static volatile u1* PUE() {
+        #ifdef PUEE
+          return &PUEE;
+        #else
+          return &PORTE;
+        #endif
+      }
     };
     #endif
     #ifdef PORTF
@@ -67,9 +87,13 @@ namespace AVR {
       constexpr static volatile u1* PORT() {return &PORTF;}
       constexpr static volatile u1* PIN() {return &PINF;}
       constexpr static volatile u1* DDR() {return &DDRF;}
-      #ifdef PUEF
-      constexpr static volatile u1* PUE() {return &PUEF;}
-      #endif
+      constexpr static volatile u1* PUE() {
+        #ifdef PUEF
+          return &PUEF;
+        #else
+          return &PORTF;
+        #endif
+      }
     };
     #endif
     #ifdef PORTG
@@ -77,9 +101,13 @@ namespace AVR {
       constexpr static volatile u1* PORT() {return &PORTG;}
       constexpr static volatile u1* PIN() {return &PING;}
       constexpr static volatile u1* DDR() {return &DDRG;}
-      #ifdef PUEG
-      constexpr static volatile u1* PUE() {return &PUEG;}
-      #endif
+      constexpr static volatile u1* PUE() {
+        #ifdef PUEG
+          return &PUEG;
+        #else
+          return &PORTG;
+        #endif
+      }
     };
     #endif
   };

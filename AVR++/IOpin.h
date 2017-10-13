@@ -33,11 +33,11 @@ inline static void output() {*DDR |= mask;}
 inline static void input() {*DDR &= ~mask;}
 
 /**
- * Sets bit in PUEx
+ * Sets bit in PUEx (or PORT)
  */
 inline static void enablePullUp() {*PUE |= mask;}
 /**
- * Clears bit in PUEx
+ * Clears bit in PUEx (or PORT)
  */
 inline static void disablePullUp() {*PUE &= ~mask;}
 
