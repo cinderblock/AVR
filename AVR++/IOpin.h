@@ -40,6 +40,10 @@ inline static void enablePullUp() {*PUE |= mask;}
  * Clears bit in PUEx (or PORT)
  */
 inline static void disablePullUp() {*PUE &= ~mask;}
+/**
+ * Clears bit in PUEx (or PORT)
+ */
+inline static void setPullUp(bool v) {v ? enablePullUp() : disablePullUp();}
 
 /**
  * Sets bit in PORTx
