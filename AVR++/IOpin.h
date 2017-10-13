@@ -83,11 +83,7 @@ inline bool operator= (bool v) {set(v); return v;}
 /**
  * Toggles the output
  */
-inline void operator! ( ) {tgl();}
 
-/**
- * Toggles the output
- */
 inline void operator++ (int) {tgl();}
 };
 
