@@ -88,7 +88,6 @@ inline bool operator++ (int) {tgl(); return isDriveHigh();}
 
 template <class port, u1 pin, bool inverted = false, bool startOn = false>
 class Output : public IOpin<port, pin> {
-  using IOpin<port, pin>::set;
   using IOpin<port, pin>::output;
   using IOpin<port, pin>::isDriveHigh;
 
@@ -100,14 +99,14 @@ class Output : public IOpin<port, pin> {
      * Turns on output, whatever logic level that is
      */
     inline static void on() {
-      set(!inverted);
+      IOpin<port, pin>::set(!inverted);
     }
 
     /**
      * Turns off output, whatever logic level that is
      */
     inline static void off() {
-      set(inverted);
+      IOpin<port, pin>::set(inverted);
     }
 
     /**
