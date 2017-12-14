@@ -132,7 +132,7 @@ class Output : public IOpin<port, pin> {
 
     private:
 
-  static void init() __attribute__((constructor)) {
+  static void init() __attribute__((constructor, used)) {
     set(startOn);
     output();
   }
@@ -156,7 +156,7 @@ class Input : public IOpin<port, pin> {
 
     private:
 
-  static void init() __attribute__((constructor)) {
+  static void init() __attribute__((constructor, used)) {
     input();
     setPullUp(pullUp);
   }
