@@ -15,6 +15,7 @@ using namespace AVR;
 #elif defined(UCSR0A)
  USART<(size_t)&UCSR0A> AVR::usart;
 #elif defined(UCSR1A)
+ template class USART<(size_t)&UCSR1A>;
  USART<(size_t)&UCSR1A> AVR::usart;
 #endif
  
