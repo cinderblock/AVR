@@ -10,6 +10,10 @@
 
 #include <stdint.h>
 
+#ifdef AVR
+#undef AVR
+#endif
+
 namespace AVR {
 
 typedef uint8_t  u1;
