@@ -43,6 +43,9 @@ namespace AVR {
 
   #ifdef __AVR_ATmega32U4__
   using SS   = IOpin<Ports::B, 0>;
+  using SCLK = IOpin<Ports::B, 1>;
+  using MOSI = IOpin<Ports::B, 2>;
+  using MISO = IOpin<Ports::B, 3>;
   #endif
   // TODO: Support more chips here
  };
