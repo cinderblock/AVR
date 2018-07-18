@@ -42,7 +42,7 @@ namespace AVR {
   constexpr volatile u1  * const DR =                       &SPDR;
 
   #ifdef __AVR_ATmega32U4__
-  using SS = Output<Ports::B, 0, true>;
+  using SS   = IOpin<Ports::B, 0>;
   #endif
   // TODO: Support more chips here
  };
