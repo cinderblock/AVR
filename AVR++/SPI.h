@@ -10,6 +10,7 @@
 
 #include <avr/io.h>
 #include "bitTypes.h"
+#include <AVR++/IOpin.h>
 
 namespace AVR {
  namespace SPI {
@@ -40,6 +41,10 @@ namespace AVR {
   constexpr volatile SRt * const SR = (volatile SRt * const)&SPSR;
   constexpr volatile u1  * const DR =                       &SPDR;
 
+  #ifdef __AVR_ATmega32U4__
+  using SS = Output<Ports::B, 0, true>;
+  #endif
+  // TODO: Support more chips here
  };
 };
 #endif	/* SPI_H */
