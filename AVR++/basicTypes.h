@@ -1,4 +1,4 @@
-/* 
+/*
  * File:   basicTypes.h
  * Author: Cameron Tacklind
  *
@@ -6,7 +6,7 @@
  */
 
 #ifndef BASICTYPES_H
-#define	BASICTYPES_H
+#define BASICTYPES_H
 
 #include <stdint.h>
 
@@ -20,8 +20,8 @@ typedef uint64_t u8;
 typedef int8_t  s1;
 typedef int16_t s2;
 typedef int32_t s4;
+typedef int64_t s8;
 
-};
+}; // namespace Basic
 
-#endif	/* BASICTYPES_H */
-
+#endif /* BASICTYPES_H */
