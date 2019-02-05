@@ -13,6 +13,7 @@
 #include "basicTypes.h"
 
 namespace AVR {
+ using namespace Basic;
  /**
   * Shortcut for a pointer to a hardware mapped (volatile) byte
   */
