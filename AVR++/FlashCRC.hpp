@@ -1,4 +1,4 @@
-#include "basicTypes.h"
+#include "basicTypes.hpp"
 #include <stddef.h>
 
 #undef AVR

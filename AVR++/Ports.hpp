@@ -7,7 +7,7 @@
 #ifndef PORTS_H_
 #define PORTS_H_
 
-#include "basicTypes.h"
+#include "basicTypes.hpp"
 #include <avr/io.h>
 
 namespace AVR {

@@ -1,5 +1,5 @@
 
-#include "FlashCRC.h"
+#include "FlashCRC.hpp"
 #include <avr/pgmspace.h>
 
 #include <util/crc16.h>

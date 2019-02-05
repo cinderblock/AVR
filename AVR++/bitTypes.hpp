@@ -8,7 +8,7 @@
 #ifndef BITTYPES_H
 #define BITTYPES_H
 
-#include "basicTypes.h"
+#include "basicTypes.hpp"
 
 namespace Basic {
 

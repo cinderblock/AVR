@@ -5,7 +5,7 @@
  * Created on March 17, 2011, 11:00 AM
  */
 
-#include "USART.h"
+#include "USART.hpp"
 
 using namespace AVR;
 

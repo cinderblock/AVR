@@ -8,7 +8,7 @@
 #ifndef USART_H
 #define USART_H
 
-#include "basicTypes.h"
+#include "basicTypes.hpp"
 #include <avr/io.h>
 #include <stddef.h>
 

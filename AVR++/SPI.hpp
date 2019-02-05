@@ -8,9 +8,9 @@
 #ifndef SPI_H
 #define	SPI_H
 
+#include "bitTypes.hpp"
+#include <AVR++/IOpin.hpp>
 #include <avr/io.h>
-#include "bitTypes.h"
-#include <AVR++/IOpin.h>
 
 namespace AVR {
  namespace SPI {

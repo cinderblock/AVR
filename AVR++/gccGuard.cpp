@@ -5,7 +5,7 @@
  * Created on January 4, 2016, 4:56 PM
  */
 
-#include "gccGuard.h"
+#include "gccGuard.hpp"
 
 int __cxa_guard_acquire(__guard *g) {
  return !*(char *)(g);

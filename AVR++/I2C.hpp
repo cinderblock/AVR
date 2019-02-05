@@ -9,7 +9,7 @@
 #define	I2C_H
 
 #include <avr/io.h>
-#include "bitTypes.h"
+#include "bitTypes.hpp"
 
 namespace AVR {
  namespace I2C {

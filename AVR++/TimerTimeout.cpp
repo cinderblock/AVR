@@ -8,7 +8,7 @@
 #include <avr/io.h>
 #include <util/atomic.h>
 
-#include "TimerTimeout.h"
+#include "TimerTimeout.hpp"
 
 using namespace AVR;
 

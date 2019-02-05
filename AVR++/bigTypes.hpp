@@ -8,7 +8,7 @@
 #ifndef BIGTYPES_H
 #define	BIGTYPES_H
 
-#include "basicTypes.h"
+#include "basicTypes.hpp"
 
 namespace AVR {
 

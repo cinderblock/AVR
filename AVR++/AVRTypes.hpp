@@ -10,7 +10,7 @@
 
 #undef AVR
 
-#include "basicTypes.h"
+#include "basicTypes.hpp"
 
 namespace AVR {
  using namespace Basic;

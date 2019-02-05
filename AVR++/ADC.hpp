@@ -10,7 +10,7 @@
 
 #include <avr/io.h>
 
-#include "bitTypes.h"
+#include "bitTypes.hpp"
 
 // Clear out conflicting Atmel defines
 #undef ADC
