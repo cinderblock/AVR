@@ -67,6 +67,46 @@ public:
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { value = next; }
     return next;
   }
+
+  inline T getForceInterruptsOn() {
+    ATOMIC_BLOCK(ATOMIC_FORCEON) { return value; }
+    return value;
+  }
+
+  inline const T getForceInterruptsOn() const {
+    ATOMIC_BLOCK(ATOMIC_FORCEON) { return value; }
+    return value;
+  }
+
+  inline T getForceInterruptsOn() volatile {
+    ATOMIC_BLOCK(ATOMIC_FORCEON) { return value; }
+    return value;
+  }
+
+  inline const T getForceInterruptsOn() const volatile {
+    ATOMIC_BLOCK(ATOMIC_FORCEON) { return value; }
+    return value;
+  }
+
+  inline T &setForceInterruptsOn(T &next) {
+    ATOMIC_BLOCK(ATOMIC_FORCEON) { value = next; }
+    return next;
+  }
+
+  inline T &setForceInterruptsOn(T &next) volatile {
+    ATOMIC_BLOCK(ATOMIC_FORCEON) { value = next; }
+    return next;
+  }
+
+  inline const T &setForceInterruptsOn(const T &next) {
+    ATOMIC_BLOCK(ATOMIC_FORCEON) { value = next; }
+    return next;
+  }
+
+  inline const T &setForceInterruptsOn(const T &next) volatile {
+    ATOMIC_BLOCK(ATOMIC_FORCEON) { value = next; }
+    return next;
+  }
 };
 
 } // namespace AVR
