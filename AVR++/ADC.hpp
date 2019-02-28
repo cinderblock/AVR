@@ -20,6 +20,7 @@
 
 namespace AVR {
 namespace ADC {
+using namespace Basic;
 
 enum class Reference : b2 { AREF, AVcc, Reserved, Internal };
 
