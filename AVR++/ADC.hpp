@@ -140,12 +140,20 @@ constexpr volatile u2 *const DigitalInputDisableRegister = (volatile u2 * const)
 
 class RegularInput {
   u1 mux;
+  bool mux5;
 
 public:
-  inline RegularInput(u1 muxValue, Reference ref = Reference::AVcc, bool leftAdjust = false)
-      : mux((u1)ref << 6 | (u1)leftAdjust << 5 | muxValue) {}
+  constexpr inline RegularInput(u1 muxValue, Reference ref = Reference::AVcc, bool leftAdjust = false)
+      : mux((u1)ref << 6 | (u1)leftAdjust << 5 | (muxValue & ((1 << 5) - 1))), mux5(muxValue & (1 << 5)) {}
 
-  inline void selectWithMux() { MUX->byte = mux; }
+  inline void select() {
+    MUX->byte = mux;
+
+    if (mux5)
+      ADCSRB |= 1 << MUX5;
+    else
+      ADCSRB &= ~(1 << MUX5);
+  }
 };
 }; // namespace ADC
 }; // namespace AVR
