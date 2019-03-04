@@ -35,6 +35,45 @@ typedef union {
 
 enum class Prescaler : b3 { D_, D2, D4, D8, D16, D32, D64, D128 };
 
+u1 constexpr divider(Prescaler const p) {
+  return p == Prescaler::D_
+             ? 2
+             : p == Prescaler::D2
+                   ? 2
+                   : p == Prescaler::D4
+                         ? 4
+                         : p == Prescaler::D8
+                               ? 8
+                               : p == Prescaler::D16
+                                     ? 16
+                                     : p == Prescaler::D32 ? 32
+                                                           : p == Prescaler::D64 ? 64 : p == Prescaler::D128 ? 128 : 0;
+}
+
+constexpr unsigned long operator/(unsigned long f, Prescaler const p) { return f / divider(p); }
+// constexpr int value(Prescaler const p) { return (u1)p; }
+
+#ifdef F_CPU
+constexpr unsigned long adcFreq(Prescaler const p) { return F_CPU / p; }
+
+constexpr bool isValid(Prescaler const p) { return adcFreq(p) > 50000 && adcFreq(p) < 200000; }
+
+constexpr Prescaler suggestedPrescaler =
+    isValid(Prescaler::D2)
+        ? Prescaler::D2
+        : isValid(Prescaler::D4)
+              ? Prescaler::D4
+              : isValid(Prescaler::D8)
+                    ? Prescaler::D8
+                    : isValid(Prescaler::D16)
+                          ? Prescaler::D16
+                          : isValid(Prescaler::D32) ? Prescaler::D32
+                                                    : isValid(Prescaler::D64) ? Prescaler::D64 : Prescaler::D128;
+
+#endif
+
+inline void startConversion() { ADCSRA |= 1 << ADSC; }
+
 typedef union {
   struct {
     Prescaler Prescale : 3;
