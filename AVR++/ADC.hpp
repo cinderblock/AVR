@@ -74,7 +74,7 @@ constexpr Prescaler suggestedPrescaler =
 
 inline void startConversion() { ADCSRA |= 1 << ADSC; }
 
-typedef union {
+typedef union SRA {
   struct {
     Prescaler Prescale : 3;
     bool InterruptEnable : 1;
@@ -84,6 +84,16 @@ typedef union {
     bool Enable : 1;
   };
   u1 byte;
+
+  SRA(bool interruptEnable, bool autoTrigger = false, Prescaler p
+#ifdef F_CPU
+                                                      = suggestedPrescaler
+#endif
+      ,
+      bool clearFlag = true, bool start = false)
+      : Prescale(p), InterruptEnable(interruptEnable), InterruptFlag(clearFlag), AutoTriggerEnable(autoTrigger),
+        StartConversion(start), Enable(true) {
+  }
 } SRAt;
 
 enum class AutoTriggerSource : b4 {
