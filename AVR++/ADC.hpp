@@ -96,6 +96,8 @@ typedef union SRA {
   }
 } SRAt;
 
+static_assert(sizeof(SRAt) == 1, "Invalid struct");
+
 enum class AutoTriggerSource : b4 {
   FreeRunning,
   AnalogComparator,
