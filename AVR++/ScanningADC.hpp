@@ -1,3 +1,4 @@
+#pragma once
 
 #include "ADC.hpp"
 #include "avr/interrupt.h"
