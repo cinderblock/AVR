@@ -50,7 +50,7 @@ private:
   static bool selectNext();
 
 public:
-  static void init();
+  static void init() __attribute__((constructor));
 };
 
 } // namespace AVR
