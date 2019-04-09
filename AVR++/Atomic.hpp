@@ -31,82 +31,130 @@ public:
 
   inline operator T() {
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { return value; }
-    return value;
   }
 
   inline operator const T() const {
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { return value; }
-    return value;
   }
 
   inline operator T() volatile {
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { return value; }
-    return value;
   }
 
   inline operator const T() const volatile {
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { return value; }
-    return value;
   }
 
-  inline T &operator=(T &next) {
-    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { value = next; }
-    return next;
+  inline Atomic<T> &operator++() {
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { value++; }
+    return *this;
   }
 
-  inline T &operator=(T &next) volatile {
-    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { value = next; }
-    return next;
+  inline Atomic<T> &operator++() volatile {
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { value++; }
+    return *this;
   }
 
-  inline const T &operator=(const T &next) {
-    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { value = next; }
-    return next;
+  inline T operator++(int) {
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { return value++; }
   }
 
-  inline const T &operator=(const T &next) volatile {
+  inline T operator++(int) volatile {
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { return value++; }
+  }
+
+  inline Atomic<T> &operator--() {
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { value--; }
+    return *this;
+  }
+
+  inline Atomic<T> &operator--() volatile {
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { value--; }
+    return *this;
+  }
+
+  inline T operator--(int) {
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { return value--; }
+  }
+
+  inline T operator--(int) volatile {
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { return value--; }
+  }
+
+  inline Atomic<T> &operator+=(const T v) {
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { value += v; }
+    return *this;
+  }
+
+  inline Atomic<T> &operator+=(const T v) volatile {
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { value += v; }
+    return *this;
+  }
+
+  inline Atomic<T> &operator-=(const T v) {
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { value -= v; }
+    return *this;
+  }
+
+  inline Atomic<T> &operator-=(const T v) volatile {
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { value -= v; }
+    return *this;
+  }
+
+  inline Atomic<T> &operator*=(const T v) {
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { value *= v; }
+    return *this;
+  }
+
+  inline Atomic<T> &operator*=(const T v) volatile {
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { value *= v; }
+    return *this;
+  }
+
+  inline Atomic<T> &operator/=(const T v) {
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { value /= v; }
+    return *this;
+  }
+
+  inline Atomic<T> &operator/=(const T v) volatile {
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { value /= v; }
+    return *this;
+  }
+
+  inline Atomic<T> &operator=(const T &next) {
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { value = next; }
-    return next;
+    return *this;
+  }
+
+  inline Atomic<T> &operator=(const T &next) volatile {
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { value = next; }
+    return *this;
   }
 
   inline T getForceInterruptsOn() {
     ATOMIC_BLOCK(ATOMIC_FORCEON) { return value; }
-    return value;
   }
 
   inline const T getForceInterruptsOn() const {
     ATOMIC_BLOCK(ATOMIC_FORCEON) { return value; }
-    return value;
   }
 
   inline T getForceInterruptsOn() volatile {
     ATOMIC_BLOCK(ATOMIC_FORCEON) { return value; }
-    return value;
   }
 
   inline const T getForceInterruptsOn() const volatile {
     ATOMIC_BLOCK(ATOMIC_FORCEON) { return value; }
-    return value;
   }
 
-  inline T &setForceInterruptsOn(T &next) {
+  inline Atomic<T> &setForceInterruptsOn(const T next) {
     ATOMIC_BLOCK(ATOMIC_FORCEON) { value = next; }
-    return next;
+    return *this;
   }
 
-  inline T &setForceInterruptsOn(T &next) volatile {
+  inline Atomic<T> &setForceInterruptsOn(const T next) volatile {
     ATOMIC_BLOCK(ATOMIC_FORCEON) { value = next; }
-    return next;
-  }
-
-  inline const T &setForceInterruptsOn(const T &next) {
-    ATOMIC_BLOCK(ATOMIC_FORCEON) { value = next; }
-    return next;
-  }
-
-  inline const T &setForceInterruptsOn(const T &next) volatile {
-    ATOMIC_BLOCK(ATOMIC_FORCEON) { value = next; }
-    return next;
+    return *this;
   }
 };
 
