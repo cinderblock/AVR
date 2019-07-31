@@ -29,6 +29,8 @@ public:
 
   // The useful bits that abstract around atomic reads and writes
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wreturn-type"
   inline operator T() {
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { return value; }
   }
@@ -44,6 +46,7 @@ public:
   inline operator const T() const volatile {
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { return value; }
   }
+#pragma GCC diagnostic pop
 
   inline Atomic<T> &operator++() {
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { value++; }

@@ -9,7 +9,6 @@ using namespace Basic;
 template <u1 N> u1 ScanningADC<N>::current = -1;
 
 template <u1 N> void ScanningADC<N>::init() {
-
   // Enable "High Speed Mode". Doesn't actually seem to do anything.
   ADCSRB = (1 << ADHSM);
 
