@@ -85,15 +85,24 @@ typedef union SRA {
   };
   u1 byte;
 
-  SRA(bool interruptEnable, bool autoTrigger = false, Prescaler p
 #ifdef F_CPU
-                                                      = suggestedPrescaler
-#endif
-      ,
-      bool clearFlag = true, bool start = false)
+  SRA(bool interruptEnable, bool autoTrigger = false, Prescaler p = suggestedPrescaler, bool clearFlag = true,
+      bool start = false)
       : Prescale(p), InterruptEnable(interruptEnable), InterruptFlag(clearFlag), AutoTriggerEnable(autoTrigger),
-        StartConversion(start), Enable(true) {
-  }
+        StartConversion(start), Enable(true) {}
+#endif
+  SRA(bool interruptEnable, bool autoTrigger, Prescaler p, bool clearFlag = true, bool start = false)
+      : Prescale(p), InterruptEnable(interruptEnable), InterruptFlag(clearFlag), AutoTriggerEnable(autoTrigger),
+        StartConversion(start), Enable(true) {}
+
+  SRA(bool interruptEnable, Prescaler p, bool clearFlag = true, bool start = false)
+      : Prescale(p), InterruptEnable(interruptEnable), InterruptFlag(clearFlag), AutoTriggerEnable(false),
+        StartConversion(start), Enable(true) {}
+
+  SRA(Prescaler p, bool interruptEnable, bool clearFlag = true, bool start = false)
+      : Prescale(p), InterruptEnable(interruptEnable), InterruptFlag(clearFlag), AutoTriggerEnable(false),
+        StartConversion(start), Enable(true) {}
+
 } SRAt;
 
 static_assert(sizeof(SRAt) == 1, "Invalid struct");
