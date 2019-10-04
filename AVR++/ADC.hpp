@@ -157,11 +157,7 @@ public:
 
   inline void select() {
     MUX->byte = mux;
-
-    if (mux5)
-      ADCSRB |= 1 << MUX5;
-    else
-      ADCSRB &= ~(1 << MUX5);
+    ControlStatusRegisterB->MultiplexerBit5 = mux5;
   }
 };
 }; // namespace ADC
