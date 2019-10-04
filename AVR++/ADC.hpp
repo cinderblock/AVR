@@ -148,8 +148,8 @@ constexpr volatile u1 *const DigitalInputDisableRegister1 = &DIDR1;
 constexpr volatile u2 *const DigitalInputDisableRegister = (volatile u2 *const) & DIDR0;
 
 class RegularInput {
-  u1 mux;
-  bool mux5;
+  const u1 mux;
+  const bool mux5;
 
 public:
   constexpr inline RegularInput(u1 muxValue, Reference ref = Reference::AVcc, bool leftAdjust = false)
