@@ -100,7 +100,7 @@ typedef union SRA {
       : Prescale(p), InterruptEnable(interruptEnable), InterruptFlag(clearFlag), AutoTriggerEnable(false),
         StartConversion(start), Enable(true) {}
 
-  SRA(Prescaler p, bool interruptEnable, bool clearFlag = true, bool start = false)
+  SRA(Prescaler p, bool interruptEnable = false, bool clearFlag = true, bool start = false)
       : Prescale(p), InterruptEnable(interruptEnable), InterruptFlag(clearFlag), AutoTriggerEnable(false),
         StartConversion(start), Enable(true) {}
 
