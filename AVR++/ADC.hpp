@@ -129,19 +129,19 @@ typedef union {
   u1 byte;
 } SRBt;
 
-constexpr volatile MUXt *const MUX = (volatile MUXt *const) & ADMUX;
+constexpr volatile MUXt *const MUX = (volatile MUXt * const) & ADMUX;
 
-constexpr volatile SRAt *const ControlStatusRegisterA = (volatile SRAt *const) & ADCSRA;
+constexpr volatile SRAt *const ControlStatusRegisterA = (volatile SRAt * const) & ADCSRA;
 
 constexpr volatile u1 *const DataRegisterLow = &ADCL;
 constexpr volatile u1 *const DataRegisterHigh = &ADCH;
 constexpr volatile u2 *const DataRegister = &ADCW;
 
-constexpr volatile SRBt *const ControlStatusRegisterB = (volatile SRBt *const) & ADCSRB;
+constexpr volatile SRBt *const ControlStatusRegisterB = (volatile SRBt * const) & ADCSRB;
 
 constexpr volatile u1 *const DigitalInputDisableRegister0 = &DIDR0;
 constexpr volatile u1 *const DigitalInputDisableRegister1 = &DIDR1;
-constexpr volatile u2 *const DigitalInputDisableRegister = (volatile u2 *const) & DIDR0;
+constexpr volatile u2 *const DigitalInputDisableRegister = (volatile u2 * const) & DIDR0;
 
 class RegularInput {
   const u1 mux;
