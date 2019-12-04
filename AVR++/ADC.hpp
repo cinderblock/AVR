@@ -53,6 +53,7 @@ u1 constexpr divider(Prescaler const p) {
 constexpr unsigned long operator/(unsigned long f, Prescaler const p) { return f / divider(p); }
 // constexpr int value(Prescaler const p) { return (u1)p; }
 
+#define SUGGESTED
 #ifdef F_CPU
 constexpr unsigned long adcFreq(Prescaler const p) { return F_CPU / p; }
 
@@ -70,6 +71,7 @@ constexpr Prescaler suggestedPrescaler =
                           : isValid(Prescaler::D32) ? Prescaler::D32
                                                     : isValid(Prescaler::D64) ? Prescaler::D64 : Prescaler::D128;
 
+#define SUGGESTED = suggestedPrescaler
 #endif
 
 inline void startConversion() { ADCSRA |= 1 << ADSC; }
@@ -85,22 +87,15 @@ typedef union SRA {
   };
   u1 byte;
 
-#ifdef F_CPU
-  SRA(bool interruptEnable, bool autoTrigger = false, Prescaler p = suggestedPrescaler, bool clearFlag = true,
-      bool start = false)
-      : Prescale(p), InterruptEnable(interruptEnable), InterruptFlag(clearFlag), AutoTriggerEnable(autoTrigger),
-        StartConversion(start), Enable(true) {}
-#endif
-
-  SRA(bool interruptEnable, bool autoTrigger, Prescaler p, bool clearFlag = true, bool start = false)
+  SRA(bool interruptEnable, bool autoTrigger = false, Prescaler p SUGGESTED, bool clearFlag = true, bool start = false)
       : Prescale(p), InterruptEnable(interruptEnable), InterruptFlag(clearFlag), AutoTriggerEnable(autoTrigger),
         StartConversion(start), Enable(true) {}
 
-  SRA(bool interruptEnable, Prescaler p, bool clearFlag = true, bool start = false)
+  SRA(bool interruptEnable, Prescaler p SUGGESTED, bool clearFlag = true, bool start = false)
       : Prescale(p), InterruptEnable(interruptEnable), InterruptFlag(clearFlag), AutoTriggerEnable(false),
         StartConversion(start), Enable(true) {}
 
-  SRA(Prescaler p, bool interruptEnable = false, bool clearFlag = true, bool start = false)
+  SRA(Prescaler p SUGGESTED, bool interruptEnable = false, bool clearFlag = true, bool start = false)
       : Prescale(p), InterruptEnable(interruptEnable), InterruptFlag(clearFlag), AutoTriggerEnable(false),
         StartConversion(start), Enable(true) {}
 
