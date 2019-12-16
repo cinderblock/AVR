@@ -53,7 +53,6 @@ u1 constexpr divider(Prescaler const p) {
 constexpr unsigned long operator/(unsigned long f, Prescaler const p) { return f / divider(p); }
 // constexpr int value(Prescaler const p) { return (u1)p; }
 
-#define SUGGESTED
 #ifdef F_CPU
 constexpr unsigned long adcFreq(Prescaler const p) { return F_CPU / p; }
 
@@ -72,6 +71,8 @@ constexpr Prescaler suggestedPrescaler =
                                                     : isValid(Prescaler::D64) ? Prescaler::D64 : Prescaler::D128;
 
 #define SUGGESTED = suggestedPrescaler
+#else
+#define SUGGESTED
 #endif
 
 inline void startConversion() { ADCSRA |= 1 << ADSC; }
