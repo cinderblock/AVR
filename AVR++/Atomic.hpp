@@ -27,6 +27,25 @@ public:
 
   inline void setUnsafe(const T next) volatile { value = next; }
 
+  inline T getAndSet(const T next) {
+    T ret;
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+      ret = value;
+      value = next;
+    }
+    return ret;
+  }
+
+  inline T getAndSet(const T next) volatile {
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+      const auto ret = value;
+      value = next;
+      return ret;
+    }
+    // Should not get here. Prevent warning.
+    return value;
+  }
+
   // The useful bits that abstract around atomic reads and writes
 
 #pragma GCC diagnostic push
