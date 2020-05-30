@@ -183,6 +183,68 @@ private:
   }
 };
 
+template <class port, u1 pin, bool activeLow = false, bool pullUp = false> class OpenDrain : public IOpin<port, pin> {
+  using IOpin<port, pin>::setPullUp;
+  using IOpin<port, pin>::isHigh;
+  using IOpin<port, pin>::output;
+  using IOpin<port, pin>::input;
+  using IOpin<port, pin>::clr;
+  using IOpin<port, pin>::set;
+  using IOpin<port, pin>::isOutputEnabled;
+
+public:
+  inline OpenDrain() {}
+  inline static bool isSink() { return isOutputEnabled(); }
+  inline static bool isOpen() { return !isOutputEnabled(); }
+
+  inline static bool isActive() { return isHigh() != activeLow; }
+
+  inline operator bool() const { return isActive(); }
+
+  inline static void sink() {
+    if (pullUp) {
+      clr();
+    }
+    output();
+  }
+
+  inline static void open() {
+    input();
+    if (pullUp) {
+      set();
+    }
+  }
+
+  inline static void tgl() {
+    if (isSink()) {
+      open();
+    } else {
+      sink();
+    }
+  }
+
+  /**
+   * sink() or open() based on v
+   */
+  inline static void set(bool v) { (v == activeLow) ? open() : sink(); }
+
+  /**
+   * sink() or open() based on v
+   */
+  inline bool operator=(bool v) {
+    set(v);
+    return v;
+  }
+
+private:
+  static void init() __attribute__((constructor, used)) {
+    input();
+    if (pullUp) {
+      setPullUp(pullUp);
+    }
+  }
+};
+
 }; // namespace AVR
 
 #endif /* _IOPIN_H */
