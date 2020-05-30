@@ -99,12 +99,12 @@ public:
   }
 };
 
-template <class port, u1 pin, bool inverted = false, bool startOn = false> class Output : public IOpin<port, pin> {
-  using IOpin<port, pin>::output;
+template <class port, u1 pin, bool inverted = false, bool startOn = false> class WeakOutput : public IOpin<port, pin> {
+  using IOpin<port, pin>::input;
   using IOpin<port, pin>::isDriveHigh;
 
 public:
-  inline Output() {}
+  inline WeakOutput() {}
 
   /**
    * Turns on output, whatever logic level that is
@@ -135,6 +135,28 @@ public:
   }
 
   inline operator bool() const { return isOn(); }
+
+private:
+  static void init() __attribute__((constructor, used)) {
+    set(startOn);
+    input();
+  }
+};
+
+template <class port, u1 pin, bool inverted = false, bool startOn = false>
+class Output : public WeakOutput<port, pin, inverted, startOn> {
+  using WeakOutput<port, pin>::output;
+  using WeakOutput<port, pin>::isDriveHigh;
+
+public:
+  inline Output() {}
+
+  using WeakOutput<port, pin, inverted, startOn>::on;
+  using WeakOutput<port, pin, inverted, startOn>::off;
+  using WeakOutput<port, pin, inverted, startOn>::isOn;
+  using WeakOutput<port, pin, inverted, startOn>::set;
+  using WeakOutput<port, pin, inverted, startOn>::operator=;
+  using WeakOutput<port, pin, inverted, startOn>::operator bool;
 
 private:
   static void init() __attribute__((constructor, used)) {
