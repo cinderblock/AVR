@@ -73,6 +73,11 @@ public:
   inline static bool isDriveHigh() { return *PORT & mask; }
 
   /**
+   * Returns value of bit in DDRx
+   */
+  inline static bool isOutputEnabled() { return *DDR & mask; }
+
+  /**
    * set() or clr() based on v
    */
   inline static void set(bool v) { v ? set() : clr(); }
