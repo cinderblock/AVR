@@ -101,6 +101,8 @@ public:
 
 template <class port, u1 pin, bool inverted = false, bool startOn = false> class WeakOutput : public IOpin<port, pin> {
   using IOpin<port, pin>::input;
+
+protected:
   using IOpin<port, pin>::isDriveHigh;
 
 public:
@@ -145,8 +147,10 @@ private:
 
 template <class port, u1 pin, bool inverted = false, bool startOn = false>
 class Output : public WeakOutput<port, pin, inverted, startOn> {
-  using WeakOutput<port, pin>::output;
-  using WeakOutput<port, pin>::isDriveHigh;
+  using WeakOutput<port, pin, inverted, startOn>::output;
+
+protected:
+  using WeakOutput<port, pin, inverted, startOn>::isDriveHigh;
 
 public:
   inline Output() {}
