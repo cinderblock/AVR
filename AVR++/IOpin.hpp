@@ -99,7 +99,8 @@ public:
   }
 };
 
-template <class port, u1 pin, bool inverted = false, bool startOn = false> class WeakOutput : public IOpin<port, pin> {
+template <class port, u1 pin, bool inverted = false, bool startOn = false, bool init = true>
+class WeakOutput : public IOpin<port, pin> {
   using IOpin<port, pin>::input;
 
 protected:
@@ -139,31 +140,33 @@ public:
   inline operator bool() const { return isOn(); }
 
 private:
-  static void init() __attribute__((constructor, used)) {
-    set(startOn);
+  inline static void init_() __attribute__((constructor, used)) {
+    if (!init)
+      return;
     input();
+    set(startOn);
   }
 };
 
 template <class port, u1 pin, bool inverted = false, bool startOn = false>
-class Output : public WeakOutput<port, pin, inverted, startOn> {
-  using WeakOutput<port, pin, inverted, startOn>::output;
+class Output : public WeakOutput<port, pin, inverted, startOn, false> {
+  using WeakOutput<port, pin, inverted, startOn, false>::output;
 
 protected:
-  using WeakOutput<port, pin, inverted, startOn>::isDriveHigh;
+  using WeakOutput<port, pin, inverted, startOn, false>::isDriveHigh;
 
 public:
   inline Output() {}
 
-  using WeakOutput<port, pin, inverted, startOn>::on;
-  using WeakOutput<port, pin, inverted, startOn>::off;
-  using WeakOutput<port, pin, inverted, startOn>::isOn;
-  using WeakOutput<port, pin, inverted, startOn>::set;
-  using WeakOutput<port, pin, inverted, startOn>::operator=;
-  using WeakOutput<port, pin, inverted, startOn>::operator bool;
+  using WeakOutput<port, pin, inverted, startOn, false>::on;
+  using WeakOutput<port, pin, inverted, startOn, false>::off;
+  using WeakOutput<port, pin, inverted, startOn, false>::isOn;
+  using WeakOutput<port, pin, inverted, startOn, false>::set;
+  using WeakOutput<port, pin, inverted, startOn, false>::operator=;
+  using WeakOutput<port, pin, inverted, startOn, false>::operator bool;
 
 private:
-  static void init() __attribute__((constructor, used)) {
+  inline static void init() __attribute__((constructor, used)) {
     set(startOn);
     output();
   }
