@@ -190,7 +190,7 @@ private:
   }
 };
 
-template <class port, u1 pin, bool activeLow = false, bool pullUp = false> class OpenDrain : public IOpin<port, pin> {
+template <class port, u1 pin, bool activeLow = true, bool pullUp = false> class OpenDrain : public IOpin<port, pin> {
   using IOpin<port, pin>::setPullUp;
   using IOpin<port, pin>::isHigh;
   using IOpin<port, pin>::output;
