@@ -233,7 +233,7 @@ public:
   /**
    * sink() or open() based on v
    */
-  inline static void set(bool v) { (v == activeLow) ? open() : sink(); }
+  inline static void set(bool v) { (v == activeLow) ? sink() : open(); }
 
   /**
    * sink() or open() based on v
