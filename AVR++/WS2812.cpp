@@ -75,8 +75,7 @@ constexpr unsigned cyclesL = const_round(F_CPU * pulseLengthL);
  * byte <<=  // lsr            ; 0   Top of Loop - Shift data and store carry bit ("0" this time)
  * on()      // sbi	Port,Pin   ; 1   Turn on output
  * delay(A)  // nop x A        ; 1   Delay A - adjust to get the "0" timing we want
- * if (bit)  // brcc off()     ; 1   test bit. is low. needs no extra delay. branch to off().
- *                             ; 1   brcc takes 2 clock cycles when branching (we skip Delay B)
+ * if (bit)  // brcs off()     ; 1   test bit. is low. needs no extra delay. Takes 1 cycle without branch.
  * off()     // cbi Port,Pin   ; 0   Turn off
  * delay(C)  // nop x C        ; 0   Delay C - adjust to get the minimum off timing we want
  * len--     // subi           ; 0   Decrement byte length counter
@@ -85,18 +84,18 @@ constexpr unsigned cyclesL = const_round(F_CPU * pulseLengthL);
  * byte <<=  // lsr            ; 0   Top of Loop - Shift data and store carry bit ("1" this time)
  * on()      // sbi	Port,Pin   ; 1   Turn on output
  * delay(A)  // nop x A        ; 1   Delay A - adjust to get the "0" timing we want
- * if (bit)  // brcc off()     ; 1   test bit. is high. needs extra delay. Takes 1 cycle without branch.
+ * if (bit)  // brcs off()     ; 1   test bit. is high. needs extra delay. branch to DelayB.
+ *                             ; 1   brcs takes 2 clock cycles when branching
  * delay(B)  // nop x B        ; 1   Delay B - adjust to get the "1" timing we want
+ * goto      // rjmp Off()     ; 1   Jump to off
+ *                             ; 1   rjmp takes 2 clock cycles
  * off()     // cbi Port,Pin   ; 0   Turn off
  * ...
  *
  * So, now we count how many clock cycles the output stays on, for each value.
  *
- * The high time for a "0" is 4 lines, but includes one line for delay A. So minCycles0 = 3
- *
- * The high time for a "1" is also 4 lines, but includes lines delay A and B. So minCycles1 = 2
- * This means we have an opportunity to get even shorter pulses at the trade of of a longer minimum low time.
- *
+ * The high time for a "0" is 3 lines, but includes one line for delay A. So minCycles0 = 2
+ * The high time for a "1" is 7 lines, but includes lines delay A and B. So minCycles1 = 5
  * The low time for the inner loop is 6 lines, but includes the delay C. So minCyclesL = 5
  *
  * The outer loop (asm not shown) adds 7 clock cycles to the low period every byte. So outerLoopExtraCycles = 7
@@ -117,8 +116,8 @@ constexpr unsigned cyclesL = const_round(F_CPU * pulseLengthL);
 
 // The number of instructions it takes to turn on the output and possibly skip the second delay
 
-constexpr unsigned minCycles0 = 3;
-constexpr unsigned minCycles1 = 2;
+constexpr unsigned minCycles0 = 2;
+constexpr unsigned minCycles1 = 5;
 constexpr unsigned minCyclesL = 5;
 constexpr unsigned outerLoopExtraCycles = 7;
 
@@ -169,12 +168,11 @@ void WS2812<Port, Pin, HandleInterrupts, ResetMicroseconds, InvertedLogic, Littl
       nopCycles(delayCyclesA);
       asm("; End of Delay A");
 
-      // BRanch if Carry is Clear (sending a "0". Skip delay B.)
-      asm volatile("brcc OFF_JUMP");
-
-      asm("; Delay B = %0 cycles" : : "I"(delayCyclesB));
-      nopCycles(delayCyclesB);
-      asm("; End of Delay B");
+      // BRanch if Carry is Set (sending a "1")
+      // delayB();
+      asm volatile("brcs DELAYB");
+      // We use brcs because when it falls through (sending a "0"), it only takes 1 clock cycle.
+      // This enables the minimum on time of 2 clock cycles.
 
       asm("OFF_JUMP:");
       off();
@@ -189,6 +187,14 @@ void WS2812<Port, Pin, HandleInterrupts, ResetMicroseconds, InvertedLogic, Littl
     asm("reti");
   else
     asm("ret");
+
+  asm("DELAYB:");
+  asm("; Delay B = %0 cycles" : : "I"(delayCyclesB));
+  nopCycles(delayCyclesB);
+  asm("; End of Delay B");
+
+  // Get back to the normal loop
+  asm volatile("rjmp OFF_JUMP");
 
   // This test depends on `ResetMicroseconds` so it needs to be inside a templated function.
   static_assert(realLowMicrosecondsMax < ResetMicroseconds / 2,
