@@ -20,6 +20,7 @@ protected:
    * @param length the number of bytes to send
    */
   static void sendBytes(u1 const *bytes, u2 length) __attribute__((naked));
+  // naked, in our case, just removes the automatic "ret" which we do ourselves.
 
 public:
   struct RGB {
