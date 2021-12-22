@@ -14,11 +14,11 @@ namespace AVR {
 
 using namespace Basic;
 
-template <class port, u1 pin> class IOpin {
-  constexpr static volatile u1 *const DDR = port::DDR();
-  constexpr static volatile u1 *const PIN = port::PIN();
-  constexpr static volatile u1 *const PUE = port::PUE();
-  constexpr static volatile u1 *const PORT = port::PORT();
+template <Ports port, u1 pin> class IOpin {
+  constexpr static auto DDR = u1(port) - 2;
+  constexpr static auto PIN = u1(port) - 1;
+  constexpr static auto PUE = u1(port) + 0;
+  constexpr static auto PORT = u1(port);
   constexpr static u1 mask = 1 << pin;
 
 public:
@@ -27,20 +27,20 @@ public:
   /**
    * Sets bit in DDRx
    */
-  inline static void output() { *DDR |= mask; }
+  inline static void output() { *(volatile uint8_t *)DDR |= mask; }
   /**
    * Clears bit in DDRx
    */
-  inline static void input() { *DDR &= ~mask; }
+  inline static void input() { *(volatile uint8_t *)DDR &= ~mask; }
 
   /**
    * Sets bit in PUEx (or PORT)
    */
-  inline static void enablePullUp() { *PUE |= mask; }
+  inline static void enablePullUp() { *(volatile uint8_t *)PUE |= mask; }
   /**
    * Clears bit in PUEx (or PORT)
    */
-  inline static void disablePullUp() { *PUE &= ~mask; }
+  inline static void disablePullUp() { *(volatile uint8_t *)PUE &= ~mask; }
   /**
    * Clears bit in PUEx (or PORT)
    */
@@ -49,32 +49,32 @@ public:
   /**
    * Sets bit in PORTx
    */
-  inline static void set() { *PORT |= mask; }
+  inline static void set() { *(volatile uint8_t *)PORT |= mask; }
 
   /**
    * Clears bit in PORTx
    */
-  inline static void clr() { *PORT &= ~mask; }
+  inline static void clr() { *(volatile uint8_t *)PORT &= ~mask; }
 
   /**
    * Sets bit in PINx
    */
-  inline static void tgl() { *PIN = mask; }
+  inline static void tgl() { *(volatile uint8_t *)PIN = mask; }
 
   /**
    * Returns value of bit in PINx
    */
-  inline static bool isHigh() { return *PIN & mask; }
+  inline static bool isHigh() { return *(volatile uint8_t *)PIN & mask; }
 
   /**
    * Returns value of bit in PORTx
    */
-  inline static bool isDriveHigh() { return *PORT & mask; }
+  inline static bool isDriveHigh() { return *(volatile uint8_t *)PORT & mask; }
 
   /**
    * Returns value of bit in DDRx
    */
-  inline static bool isOutputEnabled() { return *DDR & mask; }
+  inline static bool isOutputEnabled() { return *(volatile uint8_t *)DDR & mask; }
 
   /**
    * set() or clr() based on v
@@ -98,7 +98,7 @@ public:
   }
 };
 
-template <class port, u1 pin, bool inverted = false, bool startOn = false, bool init = true>
+template <Ports port, u1 pin, bool inverted = false, bool startOn = false, bool init = true>
 class WeakOutput : public IOpin<port, pin> {
   using IOpin<port, pin>::input;
 
@@ -147,7 +147,7 @@ private:
   }
 };
 
-template <class port, u1 pin, bool inverted = false, bool startOn = false>
+template <Ports port, u1 pin, bool inverted = false, bool startOn = false>
 class Output : public WeakOutput<port, pin, inverted, startOn, false> {
   using WeakOutput<port, pin, inverted, startOn, false>::output;
 
@@ -171,7 +171,7 @@ private:
   }
 };
 
-template <class port, u1 pin, bool activeLow = true, bool pullUp = activeLow> class Input : public IOpin<port, pin> {
+template <Ports port, u1 pin, bool activeLow = true, bool pullUp = activeLow> class Input : public IOpin<port, pin> {
   using IOpin<port, pin>::setPullUp;
   using IOpin<port, pin>::isHigh;
   using IOpin<port, pin>::input;
@@ -189,7 +189,7 @@ private:
   }
 };
 
-template <class port, u1 pin, bool activeLow = true, bool pullUp = false> class OpenDrain : public IOpin<port, pin> {
+template <Ports port, u1 pin, bool activeLow = true, bool pullUp = false> class OpenDrain : public IOpin<port, pin> {
   using IOpin<port, pin>::setPullUp;
   using IOpin<port, pin>::isHigh;
   using IOpin<port, pin>::output;

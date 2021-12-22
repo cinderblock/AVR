@@ -4,7 +4,7 @@
 
 namespace AVR {
 
-template <class port, u1 pin, bool HandleInterrupts = true, unsigned resetMicroseconds = 300,
+template <Ports port, u1 pin, bool HandleInterrupts = true, unsigned resetMicroseconds = 300,
           bool InvertedOutput = false, bool LittleEndian = false>
 class WS2812 : protected Output<port, pin, InvertedOutput> {
 protected:

@@ -7,16 +7,14 @@ using namespace AVR;
 template <typename T> static constexpr int const_round(T f) { return f > 0.0 ? int(f + 0.5) : int(f - 0.5); }
 template <typename T> static constexpr T max(T a, T b) { return a > b ? a : b; }
 
-template <typename Port, u1 Pin, bool HandleInterrupts, unsigned ResetMicroseconds, bool InvertedLogic,
-          bool LittleEndian>
+template <Ports Port, u1 Pin, bool HandleInterrupts, unsigned ResetMicroseconds, bool InvertedLogic, bool LittleEndian>
 void WS2812<Port, Pin, HandleInterrupts, ResetMicroseconds, InvertedLogic, LittleEndian>::setLEDs(RGB const *leds,
                                                                                                   u2 pixels) {
   sendBytes((u1 const *)leds, pixels * sizeof(*leds));
   _delay_us(ResetMicroseconds);
 }
 
-template <typename Port, u1 Pin, bool HandleInterrupts, unsigned ResetMicroseconds, bool InvertedLogic,
-          bool LittleEndian>
+template <Ports Port, u1 Pin, bool HandleInterrupts, unsigned ResetMicroseconds, bool InvertedLogic, bool LittleEndian>
 void WS2812<Port, Pin, HandleInterrupts, ResetMicroseconds, InvertedLogic, LittleEndian>::setLEDs(RGBW const *leds,
                                                                                                   u2 pixels) {
   sendBytes((u1 const *)leds, pixels * sizeof(*leds));
@@ -145,8 +143,7 @@ constexpr auto realLowMicrosecondsMax = realLowTimeMax * 1e6;
 
 static_assert(realHighNanoseconds0 <= 400 + 150, "Short pulse period is too long. Check F_CPU and WS2812 timing.");
 
-template <typename Port, u1 Pin, bool HandleInterrupts, unsigned ResetMicroseconds, bool InvertedLogic,
-          bool LittleEndian>
+template <Ports Port, u1 Pin, bool HandleInterrupts, unsigned ResetMicroseconds, bool InvertedLogic, bool LittleEndian>
 void WS2812<Port, Pin, HandleInterrupts, ResetMicroseconds, InvertedLogic, LittleEndian>::sendBytes(u1 const *data,
                                                                                                     u2 length) {
   if (HandleInterrupts)
