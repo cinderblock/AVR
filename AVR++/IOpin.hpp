@@ -1,12 +1,11 @@
+#pragma once
+
 /*
  * File: IOpin.h
- * Author: chtacklind
+ * Author: Cameron Tacklind
  *
  * Created on May 5, 2010, 3:23 PM
  */
-
-#ifndef _IOPIN_H
-#define _IOPIN_H
 
 #include "Ports.hpp"
 #include <avr/io.h>
@@ -251,7 +250,4 @@ private:
     }
   }
 };
-
 }; // namespace AVR
-
-#endif /* _IOPIN_H */

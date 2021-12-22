@@ -1,11 +1,10 @@
+#pragma once
+
 /*
  * File:   Ports.h
  * Author: Cameron
  *
  */
-
-#ifndef PORTS_H_
-#define PORTS_H_
 
 #include "basicTypes.hpp"
 #include <avr/io.h>
@@ -114,4 +113,3 @@ struct G {
 #endif
 };     // namespace Ports
 };     // namespace AVR
-#endif /* PORTS_H_ */
