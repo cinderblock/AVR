@@ -1,16 +1,17 @@
 #pragma once
 
-#include "IOpin.hpp"
+#include "PulsedOutput.hpp"
 
 namespace AVR {
 
 template <Ports port, u1 pin, bool HandleInterrupts = true, unsigned resetMicroseconds = 300,
           bool InvertedOutput = false, bool LittleEndian = false>
-class WS2812 : protected Output<port, pin, InvertedOutput> {
-protected:
-  using Output<port, pin>::on;
-  using Output<port, pin>::off;
+class WS2812 : protected PulsedOutput<port, pin, 400, InvertedOutput> {
+  using PulsedOutput<port, pin, 400, InvertedOutput>::send;
+  using PulsedOutput<port, pin, 400, InvertedOutput>::realHighNanosecondsShort;
+  using PulsedOutput<port, pin, 400, InvertedOutput>::realLowMicrosecondsMax;
 
+protected:
   /**
    * @brief Shift an array of bytes out the specified pin using the WS2812 protocol.
    *
