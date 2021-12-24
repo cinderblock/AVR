@@ -38,7 +38,7 @@ namespace AVR {
  */
 template <Ports port, u1 pin, unsigned shortPulseNanos, bool InvertedOutput = false,
           unsigned longPulseNanos = shortPulseNanos * 2, bool LittleEndian = false, bool InvertBits = false,
-          unsigned minRecoveryNanos = 0, bool balanceRecoveryTimes = false>
+          unsigned minRecoveryNanos = shortPulseNanos, bool balanceRecoveryTimes = false>
 class PulsedOutput : protected Output<port, pin, InvertedOutput> {
 protected:
   using Output<port, pin>::on;
