@@ -1,11 +1,9 @@
 #include "WS2812.hpp"
+#include "Const.hpp"
 #include "Nop.hpp"
 #include <util/delay.h>
 
 using namespace AVR;
-
-template <typename T> static constexpr int const_round(T f) { return f > 0.0 ? int(f + 0.5) : int(f - 0.5); }
-template <typename T> static constexpr T max(T a, T b) { return a > b ? a : b; }
 
 template <Ports Port, u1 Pin, bool HandleInterrupts, unsigned ResetMicroseconds, bool InvertedLogic, bool LittleEndian>
 void WS2812<Port, Pin, HandleInterrupts, ResetMicroseconds, InvertedLogic, LittleEndian>::setLEDs(RGB const *leds,
