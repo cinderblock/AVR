@@ -50,32 +50,31 @@ void PulsedOutput<Port, Pin, shortPulseNanos, InvertedOutput, longPulseNanos, Li
     asm("; Delay C = %0 cycles" : : "I"(delayCyclesC));
     nopCycles(delayCyclesC);
     asm("; End of Delay C");
-
-    continue;
-
-    // Jump to here for the long delay
-    asm("DELAYB:");
-    asm("; Delay B = %0 cycles" : : "I"(delayCyclesB));
-    nopCycles(delayCyclesB);
-    asm("; End of Delay B");
-
-    if (balanceRecoveryTimes) {
-      off();
-
-      // TODO: Alternate path if balanceRecoveryTimes is true
-      static_assert(!balanceRecoveryTimes, "Not yet implemented");
-      const unsigned delayCyclesD = 0; // TODO: Calculate this and move to class
-
-      asm("; Delay D = %0 cycles" : : "I"(delayCyclesD));
-      nopCycles(delayCyclesD);
-      asm("; End of Delay D");
-    } else {
-      // Get back to the normal loop
-      asm volatile("rjmp OFF_JUMP");
-    }
   }
 
-  // if (ih == InterruptHandling::Byte) sei();
+  // if (ih == InterruptHandling::Byte) asm volatile("reti");
+  asm volatile("ret");
+
+  // Jump to here for the long delay
+  asm volatile("DELAYB:");
+  asm("; Delay B = %0 cycles" : : "I"(delayCyclesB));
+  nopCycles(delayCyclesB);
+  asm("; End of Delay B");
+
+  if (balanceRecoveryTimes) {
+    off();
+
+    // TODO: Alternate path if balanceRecoveryTimes is true
+    static_assert(!balanceRecoveryTimes, "Not yet implemented");
+    const unsigned delayCyclesD = 0; // TODO: Calculate this and move to class
+
+    asm("; Delay D = %0 cycles" : : "I"(delayCyclesD));
+    nopCycles(delayCyclesD);
+    asm("; End of Delay D");
+  } else {
+    // Get back to the normal loop
+    asm volatile("rjmp OFF_JUMP");
+  }
 }
 
 template <Ports Port, u1 Pin, unsigned shortPulseNanos, bool InvertedOutput, unsigned longPulseNanos, bool LittleEndian,

@@ -143,7 +143,7 @@ public:
   static constexpr auto realLowMicrosecondsMax = realLowTimeMax * 1e6;
 
 public:
-  static inline void send(u1 const byte, u1 bits = 8);
+  static inline void send(u1 const byte, u1 bits = 8) __attribute__((naked));
 
   /**
    * @brief Shift an array of bits (packed as bytes) out the specified pin
