@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Const.hpp"
 #include "IOpin.hpp"
 
 namespace AVR {
