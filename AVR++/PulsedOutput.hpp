@@ -47,16 +47,16 @@ protected:
 
 public:
   // Positive length of output on for "0" bit (for non-inverted output/bits)
-  consteval double pulseLength0 = 0.000000001 * shortPulseNanos;
+  static constexpr double pulseLengthShort = 0.000000001 * shortPulseNanos;
   // Positive length of output on for "1" bit
-  consteval double pulseLength1 = 0.000000001 * longPulseNanos;
+  static constexpr double pulseLengthLong = 0.000000001 * longPulseNanos;
   // Minimum length of off state
-  consteval double pulseLengthR = 0.000000001 * minRecoveryNanos;
+  static constexpr double pulseLengthRecover = 0.000000001 * minRecoveryNanos;
 
   // Cycles needed by microprocessor to achieve the desired periods
-  consteval unsigned cycles0 = const_round(F_CPU * pulseLength0);
-  consteval unsigned cycles1 = const_round(F_CPU * pulseLength1);
-  consteval unsigned cyclesR = const_round(F_CPU * pulseLengthR);
+  static constexpr unsigned cyclesShort = const_round(F_CPU * pulseLengthShort);
+  static constexpr unsigned cyclesLong = const_round(F_CPU * pulseLengthLong);
+  static constexpr unsigned cyclesRecover = const_round(F_CPU * pulseLengthRecover);
 
   /**
    * In order to get accurate transition times, we need to know how long other intructions that are used/executed take.
@@ -93,54 +93,54 @@ public:
    *
    * So, now we count how many clock cycles the output stays on, for each value.
    *
-   * The high time for a "0" is 3 lines, but includes one line for delay A. So minCycles0 = 2
-   * The high time for a "1" is 7 lines, but includes lines delay A and B. So minCycles1 = 5
-   * The low time for the inner loop is 6 lines, but includes the delay C. So minCyclesR = 5
+   * The high time for a "0" is 3 lines, but includes one line for delay A. So minCyclesShort = 2
+   * The high time for a "1" is 7 lines, but includes lines delay A and B. So minCyclesLong = 5
+   * The low time for the inner loop is 6 lines, but includes the delay C. So minCyclesRecover = 5
    *
    * The outer loop (asm not shown) adds 7 clock cycles to the low period every byte. So outerLoopExtraCycles = 7
    * So long as it doesn't stretch the low time too much, the data should not be corrupted.
    *
    * Let's use some basic arithmetic. Starting with...
-   * cycles0 = minCycles0 + A
-   * cycles1 = minCycles1 + A + B
-   * cyclesLow = minCyclesR + C
+   * cyclesShort = minCyclesShort + A
+   * cyclesLong = minCyclesLong + A + B
+   * cyclesLow = minCyclesRecover + C
    * cyclesLowLoop = cyclesLow + outerLoopExtraCycles
    *
    * We can rearrange the equations to get...
    *
-   * delayCyclesA = cycles0 - minCycles0
-   * delayCyclesB = cycles1 - minCycles1 - delayCyclesA
-   * delayCyclesC = cyclesLow - minCyclesR
+   * delayCyclesA = cyclesShort - minCyclesShort
+   * delayCyclesB = cyclesLong - minCyclesLong - delayCyclesA
+   * delayCyclesC = cyclesLow - minCyclesRecover
    */
 
   // The number of instructions it takes to turn on the output and possibly skip the second delay
 
-  consteval unsigned minCycles0 = 2;
-  consteval unsigned minCycles1 = 5;
-  consteval unsigned minCyclesR = 5;
-  consteval unsigned outerLoopExtraCycles = 7;
+  static constexpr unsigned minCyclesShort = 2;
+  static constexpr unsigned minCyclesLong = 5;
+  static constexpr unsigned minCyclesRecover = 5;
+  static constexpr unsigned outerLoopExtraCycles = 7;
 
-  consteval unsigned delayCyclesA = max<signed>(0, cycles0 - minCycles0);
-  consteval unsigned delayCyclesB = max<signed>(0, cycles1 - minCycles1 - delayCyclesA);
-  consteval unsigned delayCyclesC = max<signed>(0, cyclesR - minCyclesR);
+  static constexpr unsigned delayCyclesA = max<signed>(0, cyclesShort - minCyclesShort);
+  static constexpr unsigned delayCyclesB = max<signed>(0, cyclesLong - minCyclesLong - delayCyclesA);
+  static constexpr unsigned delayCyclesC = max<signed>(0, cyclesRecover - minCyclesRecover);
 
   // Values that will actually be used. For developer inspection with modern editor.
 
-  consteval auto realHighCycles0 = minCycles0 + delayCyclesA;
-  consteval auto realHighCycles1 = minCycles1 + delayCyclesA + delayCyclesB;
-  consteval auto realLowCyclesMin = minCyclesR + delayCyclesC;
-  consteval auto realLowCyclesMax = realLowCyclesMin + outerLoopExtraCycles;
+  static constexpr auto realHighCyclesShort = minCyclesShort + delayCyclesA;
+  static constexpr auto realHighCyclesLong = minCyclesLong + delayCyclesA + delayCyclesB;
+  static constexpr auto realLowCyclesMin = minCyclesRecover + delayCyclesC;
+  static constexpr auto realLowCyclesMax = realLowCyclesMin + outerLoopExtraCycles;
 
-  consteval auto realHighTime0 = realHighCycles0 / double(F_CPU);
-  consteval auto realHighTime1 = realHighCycles1 / double(F_CPU);
-  consteval auto realLowTimeMin = realLowCyclesMin / double(F_CPU);
-  consteval auto realLowTimeMax = realLowCyclesMax / double(F_CPU);
+  static constexpr auto realHighTimeShort = realHighCyclesShort / double(F_CPU);
+  static constexpr auto realHighTimeLong = realHighCyclesLong / double(F_CPU);
+  static constexpr auto realLowTimeMin = realLowCyclesMin / double(F_CPU);
+  static constexpr auto realLowTimeMax = realLowCyclesMax / double(F_CPU);
 
-  consteval auto realHighNanoseconds0 = realHighTime0 * 1e9;
-  consteval auto realHighNanoseconds1 = realHighTime1 * 1e9;
-  consteval auto realLowNanosecondsMin = realLowTimeMin * 1e9;
+  static constexpr auto realHighNanosecondsShort = realHighTimeShort * 1e9;
+  static constexpr auto realHighNanosecondsLong = realHighTimeLong * 1e9;
+  static constexpr auto realLowNanosecondsMin = realLowTimeMin * 1e9;
 
-  consteval auto realLowMicrosecondsMax = realLowTimeMax * 1e6;
+  static constexpr auto realLowMicrosecondsMax = realLowTimeMax * 1e6;
 
 public:
   static inline void send(u1 const byte, u1 bits = 8);
