@@ -1,12 +1,15 @@
-#include "DSHOT.hpp"
+#include "DShot.hpp"
 #include "TimerTimeout.hpp"
 
-using namespace AVR;
-using namespace DShot;
+using AVR::Ports;
+using AVR::u1;
+using AVR::DShot::DShot;
+using AVR::DShot::Response;
+using AVR::DShot::Speeds;
 
 inline static constexpr u1 decodeGCR(u1 const gcr) {
-  // clang-format off
   switch (gcr) {
+  // clang-format off
     case 0b11001: return 0b0000;
     case 0b11011: return 0b0001;
  // case 0b10010: return 0b0010;
@@ -28,12 +31,14 @@ inline static constexpr u1 decodeGCR(u1 const gcr) {
   return gcr & 0b1111;
 }
 
+inline static constexpr void delayNanos(float const nanos) { __builtin_avr_delay_cycles(nanos * (F_CPU / 1e9f)); }
+
 template <Ports port, u1 pin, Speeds speed, bool bidirectional>
-Response DShot<port, pin, speed, bidirectional>::getResponse() {
+Response AVR::DShot::DShot<port, pin, speed, bidirectional>::getResponse() {
   if (!bidirectional)
     return 0;
 
-  input();
+  // input();
 
   // 4 nibbles come in as 5 bits
   constexpr unsigned nibbles = 4;

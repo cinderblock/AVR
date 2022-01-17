@@ -1,6 +1,7 @@
 #pragma once
 
 #include "PulsedOutput.hpp"
+#include <avr/interrupt.h>
 
 namespace AVR {
 
@@ -11,7 +12,7 @@ enum class Speeds {
   DSHOT300,
   DSHOT600,
   DSHOT1200,
-  DSHOT2400,
+  // DSHOT2400,
 };
 
 constexpr float BitrateToPeriod(float bitrate) { return 1.0f / bitrate; }
@@ -90,13 +91,13 @@ struct Command {
   constexpr inline static u1 computeCRC(u2 command, bool telemetry) {
     command <<= 1;
     command |= telemetry;
-    return (~(value ^ (value >> 4) ^ (value >> 8))) & 0x0F;
+    return (~(command ^ (command >> 4) ^ (command >> 8))) & 0x0F;
   }
 
   static constexpr unsigned minCommand = 48;
 
   Command(u2 command, bool telemetry = false)
-      : command(max(command, minCommand)), telemetry(telemetry), crc(computeCRC(this->command, telemetry)) {}
+      : command(max<u2>(command, minCommand)), telemetry(telemetry), crc(computeCRC(this->command, telemetry)) {}
 
   Command(SpecialCommand command, bool telemetry = false)
       : command(static_cast<u2>(command)), telemetry(telemetry), crc(computeCRC(this->command, telemetry)) {}
@@ -109,7 +110,7 @@ struct Response {
 
   inline bool isError() const { return rpmPeriodBase == 0 && rpmPeriodExponent == 0; }
   inline Response() = default;
-  inline Response(u2 rpmPeriodBase, u1 rpmPeriodExponent)
+  inline constexpr Response(u2 rpmPeriodBase, u1 rpmPeriodExponent)
       : rpmPeriodBase(rpmPeriodBase), rpmPeriodExponent(rpmPeriodExponent) {}
 
   /**
@@ -124,14 +125,14 @@ struct Response {
    * @return float eRPM of motor
    */
   inline float rpm() const { return 60e6 / (1 << rpmPeriodExponent) / rpmPeriodBase; }
-}
+};
 
-constexpr Response r = Response(1, 0);
-constexpr float test = r.rpm();
+// constexpr Response r{1, 0};
+// constexpr float test = r.rpm();
 
-template <Ports port, u1 pin, Speeds speed, bool bidirectional = false>
+template <Ports port, u1 pin, Speeds speed = Speeds::DSHOT1200, bool bidirectional = false>
 class DShot : public PulsedOutput<port, pin, pulseNanos0(speed), bidirectional> {
-  using IOpin<port, pin>::input;
+  using WeakOutput<port, pin, bidirectional, false, false>::input;
   using IOpin<port, pin>::isHigh;
   using IOpin<port, pin>::output;
 
