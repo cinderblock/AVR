@@ -101,7 +101,7 @@ extern USART<(size_t)&UCSRA> usart;
 #elif defined(UCSR0A)
 extern USART<(size_t)&UCSR0A> usart;
 #elif defined(UCSR1A)
-extern USART<(size_t)&UCSR1A> usart;
+extern USART<0xC8> usart;
 #endif
 
 #if defined(UCSR1A) && (defined(UCSRA) || defined(UCSR0A))

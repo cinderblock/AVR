@@ -5,8 +5,8 @@
 
 using namespace AVR;
 
-template <Ports Port, u1 Pin, unsigned shortPulseNanos, bool InvertedOutput, unsigned longPulseNanos, bool LittleEndian,
-          bool InvertBits, unsigned minRecoveryNanos, bool balanceRecoveryTimes>
+template <Ports Port, unsigned Pin, unsigned shortPulseNanos, bool InvertedOutput, unsigned longPulseNanos,
+          bool LittleEndian, bool InvertBits, unsigned minRecoveryNanos, bool balanceRecoveryTimes>
 void PulsedOutput<Port, Pin, shortPulseNanos, InvertedOutput, longPulseNanos, LittleEndian, InvertBits,
                   minRecoveryNanos, balanceRecoveryTimes>::send(u1 byte, u1 bits) {
   // Automatically shift bits over for BigEndian?
@@ -36,13 +36,14 @@ void PulsedOutput<Port, Pin, shortPulseNanos, InvertedOutput, longPulseNanos, Li
     // BRanch if Carry is Clear/Set (sending a long pulse)
     // delayB();
     if (InvertBits)
-      asm volatile("brcc DELAYB");
+      asm goto("brcc %l[C_DELAY_B]" :: ::C_DELAY_B);
     else
-      asm volatile("brcs DELAYB");
+      asm goto("brcs %l[C_DELAY_B]" :: ::C_DELAY_B);
+
     // We use brcc/brcs because when it falls through (sending a short pulse), it only takes 1 clock cycle.
     // This enables the minimum pulse time of 2 clock cycles.
 
-    asm("OFF_JUMP:");
+  OFF_JUMP:
     off();
 
     // if (ih == InterruptHandling::Bit) sei();
@@ -56,7 +57,7 @@ void PulsedOutput<Port, Pin, shortPulseNanos, InvertedOutput, longPulseNanos, Li
   asm volatile("ret");
 
   // Jump to here for the long delay
-  asm volatile("DELAYB:");
+C_DELAY_B:
   asm("; Delay B = %0 cycles" : : "I"(delayCyclesB));
   nopCycles(delayCyclesB);
   asm("; End of Delay B");
@@ -73,12 +74,12 @@ void PulsedOutput<Port, Pin, shortPulseNanos, InvertedOutput, longPulseNanos, Li
     asm("; End of Delay D");
   } else {
     // Get back to the normal loop
-    asm volatile("rjmp OFF_JUMP");
+    asm goto("rjmp %l[OFF_JUMP]" :: ::OFF_JUMP);
   }
 }
 
-template <Ports Port, u1 Pin, unsigned shortPulseNanos, bool InvertedOutput, unsigned longPulseNanos, bool LittleEndian,
-          bool InvertBits, unsigned minRecoveryNanos, bool balanceRecoveryTimes>
+template <Ports Port, unsigned Pin, unsigned shortPulseNanos, bool InvertedOutput, unsigned longPulseNanos,
+          bool LittleEndian, bool InvertBits, unsigned minRecoveryNanos, bool balanceRecoveryTimes>
 void PulsedOutput<Port, Pin, shortPulseNanos, InvertedOutput, longPulseNanos, LittleEndian, InvertBits,
                   minRecoveryNanos, balanceRecoveryTimes>::send(u1 const *bytes, u2 bits) {
   // if (ih == InterruptHandling::Block) cli();

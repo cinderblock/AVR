@@ -11,7 +11,9 @@ static inline void nopCycles(unsigned cycles) {
 #else
   if (cycles & 1)
     asm volatile("nop");
+
   cycles /= 2;
+
   while (cycles--)
     asm volatile("rjmp .");
 #endif

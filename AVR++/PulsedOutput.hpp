@@ -37,13 +37,15 @@ namespace AVR {
  * @tparam minRecoveryNanos The minimum time to wait after sending a bit before sending the next bit (0)
  * @tparam balanceRecoveryTimes Make pulses start at regular intervals (false) [Not Yet Implemented]
  */
-template <Ports port, u1 pin, unsigned shortPulseNanos, bool InvertedOutput = false,
+template <Ports port, unsigned pin, unsigned shortPulseNanos, bool InvertedOutput = false,
           unsigned longPulseNanos = shortPulseNanos * 2, bool LittleEndian = false, bool InvertBits = false,
           unsigned minRecoveryNanos = shortPulseNanos, bool balanceRecoveryTimes = false>
 class PulsedOutput : protected Output<port, pin, InvertedOutput> {
 protected:
-  using Output<port, pin>::on;
-  using Output<port, pin>::off;
+  using Output<port, pin, InvertedOutput>::on;
+  using Output<port, pin, InvertedOutput>::off;
+  using Output<port, pin, InvertedOutput>::input;
+  using Output<port, pin, InvertedOutput>::output;
 
 public:
   // Positive length of output on for "0" bit (for non-inverted output/bits)
@@ -143,7 +145,7 @@ public:
   static constexpr auto realLowMicrosecondsMax = realLowTimeMax * 1e6;
 
 public:
-  static inline void send(u1 const byte, u1 bits = 8) __attribute__((naked));
+  static inline void send(u1 const byte, u1 bits = 8) __attribute__(());
 
   /**
    * @brief Shift an array of bits (packed as bytes) out the specified pin

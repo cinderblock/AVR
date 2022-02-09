@@ -20,7 +20,7 @@ protected:
    * @param bytes the bytes to send
    * @param length the number of bytes to send
    */
-  static void sendBytes(u1 const *bytes, u2 length) __attribute__((naked));
+  static void sendBytes(u1 const *bytes, u2 length);
   // naked, in our case, just removes the automatic "ret" which we do ourselves.
 
 public:
