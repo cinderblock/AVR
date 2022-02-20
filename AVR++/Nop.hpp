@@ -1,3 +1,4 @@
+#pragma once
 
 // VS Code complains without this. GCC doesn't need it.
 extern "C" void __builtin_avr_delay_cycles(long unsigned int);

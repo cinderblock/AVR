@@ -1,3 +1,5 @@
+#pragma once
+
 #include "WS2812.hpp"
 #include <util/delay.h>
 

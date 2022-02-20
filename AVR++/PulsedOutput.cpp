@@ -1,3 +1,5 @@
+#pragma once
+
 #include "PulsedOutput.hpp"
 #include "Const.hpp"
 #include "Nop.hpp"
