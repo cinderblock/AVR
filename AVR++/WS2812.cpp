@@ -4,23 +4,9 @@
 #include <util/delay.h>
 
 // Yes, cpp is intentional
-#include "PulsedOutput.cpp"
+// #include "PulsedOutput.cpp"
 
 using namespace AVR;
-
-template <Ports Port, u1 Pin, bool HandleInterrupts, unsigned ResetMicroseconds, bool InvertedLogic, bool LittleEndian>
-void WS2812<Port, Pin, HandleInterrupts, ResetMicroseconds, InvertedLogic, LittleEndian>::setLEDs(RGB const *leds,
-                                                                                                  u2 pixels) {
-  sendBytes((u1 const *)leds, pixels * sizeof(*leds));
-  _delay_us(ResetMicroseconds);
-}
-
-template <Ports Port, u1 Pin, bool HandleInterrupts, unsigned ResetMicroseconds, bool InvertedLogic, bool LittleEndian>
-void WS2812<Port, Pin, HandleInterrupts, ResetMicroseconds, InvertedLogic, LittleEndian>::setLEDs(RGBW const *leds,
-                                                                                                  u2 pixels) {
-  sendBytes((u1 const *)leds, pixels * sizeof(*leds));
-  _delay_us(ResetMicroseconds);
-}
 
 /**
  * A single WS2812 bit is a high "pulse" period and low "pulse" period.
@@ -44,20 +30,31 @@ void WS2812<Port, Pin, HandleInterrupts, ResetMicroseconds, InvertedLogic, Littl
  * and not so long that it's "seen" as a reset pulse. To put it another way, there is no reason to wait the full 850ns
  * for a "0". This simplification of the protocol is easier to implement. This also lets the code gracefully take a
  * different amount of time when at the end of a byte.
+ *
+ * Simplified explanation:
+ * Each bit is sampled a fixed time period after a rising edge.
+ * After the falling edge, which could be before the sample, we need to hold the line low for some minimum time for the
+ * pixel circuitry to recover.
+ *  ______________________________s_________                       ...
+ * |                    \         ^         \                     |
+ * | < rising edge       \   sample strobe   \                    | < next rising edge
+ * |                      \___________________\___Recovery Time___|
+ *
+ * If the line is held low for a longer time period (> ~40us), all pixels will latch their latest values.
  */
 
 template <Ports Port, u1 Pin, bool HandleInterrupts, unsigned ResetMicroseconds, bool InvertedLogic, bool LittleEndian>
-void WS2812<Port, Pin, HandleInterrupts, ResetMicroseconds, InvertedLogic, LittleEndian>::sendBytes(u1 const *data,
-                                                                                                    u2 length) {
+void WS2812<Port, Pin, HandleInterrupts, ResetMicroseconds, InvertedLogic, LittleEndian>::sendBytes(
+    u1 const *const data, u2 length) {
   if (HandleInterrupts)
     asm("cli");
 
-  send(data, length * 8);
+  send(data, length);
 
   if (HandleInterrupts)
     asm("reti");
   else
-    asm("ret");
+    return;
 
   static_assert(realHighNanosecondsShort <= 400 + 150,
                 "Short pulse period is too long. Check F_CPU and WS2812 timing.");

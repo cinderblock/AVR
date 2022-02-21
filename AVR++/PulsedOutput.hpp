@@ -2,6 +2,7 @@
 
 #include "Const.hpp"
 #include "IOpin.hpp"
+#include "Nop.hpp"
 
 namespace AVR {
 
@@ -21,39 +22,41 @@ namespace AVR {
  *
  * @details
  *          _______________________
- *     0 = |<-- shortPulseNanos -->|<-- minRecoveryNanos -->
+ *     0 = |<-- ShortPulseNanos -->|<-- MinRecoveryNanos -->
  *         |                       |________________________
  *          __________________________________
- *     1 = |<-------- longPulseNanos -------->|<-- minRecoveryNanos -->
+ *     1 = |<-------- LongPulseNanos -------->|<-- MinRecoveryNanos -->
  *         |                                  |________________________
  *
- * @tparam port The processor "port" to use
- * @tparam pin The partiular pin of the "port" to use
- * @tparam shortPulseNanos The length of the short pulse in nanoseconds
+ * @tparam Port The processor "Port" to use
+ * @tparam Pin The partiular Pin of the "Port" to use
+ * @tparam ShortPulseNanos The length of the short pulse in nanoseconds
  * @tparam InvertedOutput Whether to invert the output (false)
- * @tparam longPulseNanos The length of the long pulse in nanoseconds (2x short pulse)
+ * @tparam LongPulseNanos The length of the long pulse in nanoseconds (2x short pulse)
  * @tparam LittleEndian Whether to send the least significant bit first (false)
  * @tparam InvertBits Whether to invert the long/short pulse meaning of bits (false)
- * @tparam minRecoveryNanos The minimum time to wait after sending a bit before sending the next bit (0)
- * @tparam balanceRecoveryTimes Make pulses start at regular intervals (false) [Not Yet Implemented]
+ * @tparam MinRecoveryNanos The minimum time to wait after sending a bit before sending the next bit (0)
+ * @tparam BalanceRecoveryTimes Make pulses start at regular intervals (false) [Not Yet Implemented]
  */
-template <Ports port, unsigned pin, unsigned shortPulseNanos, bool InvertedOutput = false,
-          unsigned longPulseNanos = shortPulseNanos * 2, bool LittleEndian = false, bool InvertBits = false,
-          unsigned minRecoveryNanos = shortPulseNanos, bool balanceRecoveryTimes = false>
-class PulsedOutput : protected Output<port, pin, InvertedOutput> {
+template <Ports Port, unsigned Pin, unsigned ShortPulseNanos, bool InvertedOutput = false,
+          unsigned LongPulseNanos = ShortPulseNanos * 2, bool LittleEndian = false, bool InvertBits = false,
+          unsigned MinRecoveryNanos = ShortPulseNanos, bool BalanceRecoveryTimes = false>
+class PulsedOutput : protected Output<Port, Pin, InvertedOutput> {
 protected:
-  using Output<port, pin, InvertedOutput>::on;
-  using Output<port, pin, InvertedOutput>::off;
-  using Output<port, pin, InvertedOutput>::input;
-  using Output<port, pin, InvertedOutput>::output;
+  using Output<Port, Pin, InvertedOutput>::on;
+  using Output<Port, Pin, InvertedOutput>::off;
+  using Output<Port, Pin, InvertedOutput>::input;
+  using Output<Port, Pin, InvertedOutput>::output;
 
 public:
+  using Output<Port, Pin, InvertedOutput>::init;
+
   // Positive length of output on for "0" bit (for non-inverted output/bits)
-  static constexpr double pulseLengthShort = 0.000000001 * shortPulseNanos;
+  static constexpr double pulseLengthShort = 0.000000001 * ShortPulseNanos;
   // Positive length of output on for "1" bit
-  static constexpr double pulseLengthLong = 0.000000001 * longPulseNanos;
+  static constexpr double pulseLengthLong = 0.000000001 * LongPulseNanos;
   // Minimum length of off state
-  static constexpr double pulseLengthRecover = 0.000000001 * minRecoveryNanos;
+  static constexpr double pulseLengthRecover = 0.000000001 * MinRecoveryNanos;
 
   // Cycles needed by microprocessor to achieve the desired periods
   static constexpr unsigned cyclesShort = const_round(F_CPU * pulseLengthShort);
@@ -145,15 +148,18 @@ public:
   static constexpr auto realLowMicrosecondsMax = realLowTimeMax * 1e6;
 
 public:
-  static inline void send(u1 const byte, u1 bits = 8) __attribute__(());
+  static void send(u1 byte, u1 bits = 8);
 
   /**
    * @brief Shift an array of bits (packed as bytes) out the specified pin
    *
-   * @param bytes the bytes to send
-   * @param bits the number of bits to send
+   * @param data the bytes to send
+   * @param bytes the number of bytes to send
    */
-  static inline void send(u1 const *bytes, u2 bits);
+  static inline void send(u1 const *data, u1 bytes) {
+    while (bytes--)
+      send(*data++);
+  }
 };
 
 }; // namespace AVR

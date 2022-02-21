@@ -7,10 +7,12 @@
 
 using namespace AVR;
 
-template <Ports Port, unsigned Pin, unsigned shortPulseNanos, bool InvertedOutput, unsigned longPulseNanos,
-          bool LittleEndian, bool InvertBits, unsigned minRecoveryNanos, bool balanceRecoveryTimes>
-void PulsedOutput<Port, Pin, shortPulseNanos, InvertedOutput, longPulseNanos, LittleEndian, InvertBits,
-                  minRecoveryNanos, balanceRecoveryTimes>::send(u1 byte, u1 bits) {
+template <Ports Port, unsigned Pin, unsigned ShortPulseNanos, bool InvertedOutput, unsigned LongPulseNanos,
+          bool LittleEndian, bool InvertBits, unsigned MinimumRecoveryNanos, bool BalanceRecoveryTimes>
+void PulsedOutput<Port, Pin, ShortPulseNanos, InvertedOutput, LongPulseNanos, LittleEndian, InvertBits,
+                  MinimumRecoveryNanos, BalanceRecoveryTimes>::send(u1 byte, u1 bits) {
+  asm volatile("; PulsedOutput::send(u1 byte, u1 bits)");
+
   // Automatically shift bits over for BigEndian?
   // if (!LittleEndian) for (u1 i = bits; i < 8; i++) byte <<= 1;
 
@@ -31,9 +33,9 @@ void PulsedOutput<Port, Pin, shortPulseNanos, InvertedOutput, longPulseNanos, Li
 
     on();
 
-    asm("; Delay A = %0 cycles" : : "I"(delayCyclesA));
+    asm("; PulsedOutput Delay A = %0 cycles" : : "I"(delayCyclesA));
     nopCycles(delayCyclesA);
-    asm("; End of Delay A");
+    asm("; End of PulsedOutput Delay A");
 
     // BRanch if Carry is Clear/Set (sending a long pulse)
     // delayB();
@@ -50,47 +52,34 @@ void PulsedOutput<Port, Pin, shortPulseNanos, InvertedOutput, longPulseNanos, Li
 
     // if (ih == InterruptHandling::Bit) sei();
 
-    asm("; Delay C = %0 cycles" : : "I"(delayCyclesC));
+    asm("; PulsedOutput Delay C = %0 cycles" : : "I"(delayCyclesC));
     nopCycles(delayCyclesC);
-    asm("; End of Delay C");
+    asm("; End of PulsedOutput Delay C");
   }
 
   // if (ih == InterruptHandling::Byte) asm volatile("reti");
-  asm volatile("ret");
+  return;
 
   // Jump to here for the long delay
 C_DELAY_B:
-  asm("; Delay B = %0 cycles" : : "I"(delayCyclesB));
+  asm("; PulsedOutput Delay B = %0 cycles" : : "I"(delayCyclesB));
   nopCycles(delayCyclesB);
-  asm("; End of Delay B");
+  asm("; End of PulsedOutput Delay B");
 
-  if (balanceRecoveryTimes) {
+  if (BalanceRecoveryTimes) {
     off();
 
-    // TODO: Alternate path if balanceRecoveryTimes is true
-    static_assert(!balanceRecoveryTimes, "Not yet implemented");
+    // TODO: Alternate path if BalanceRecoveryTimes is true
+    static_assert(!BalanceRecoveryTimes, "Not yet implemented");
     const unsigned delayCyclesD = 0; // TODO: Calculate this and move to class
 
-    asm("; Delay D = %0 cycles" : : "I"(delayCyclesD));
+    asm("; PulsedOutput Delay D = %0 cycles" : : "I"(delayCyclesD));
     nopCycles(delayCyclesD);
-    asm("; End of Delay D");
+    asm("; End of PulsedOutput Delay D");
   } else {
     // Get back to the normal loop
     asm goto("rjmp %l[OFF_JUMP]" :: ::OFF_JUMP);
   }
-}
 
-template <Ports Port, unsigned Pin, unsigned shortPulseNanos, bool InvertedOutput, unsigned longPulseNanos,
-          bool LittleEndian, bool InvertBits, unsigned minRecoveryNanos, bool balanceRecoveryTimes>
-void PulsedOutput<Port, Pin, shortPulseNanos, InvertedOutput, longPulseNanos, LittleEndian, InvertBits,
-                  minRecoveryNanos, balanceRecoveryTimes>::send(u1 const *bytes, u2 bits) {
-  // if (ih == InterruptHandling::Block) cli();
-
-  while (bits) {
-    const auto b = min<unsigned>(bits, 8u);
-    send(*bytes++, b);
-    bits -= b;
-  }
-
-  // if (ih == InterruptHandling::Block) sei();
+  asm volatile("; PulsedOutput::send(u1 byte, u1 bits)#end");
 }
