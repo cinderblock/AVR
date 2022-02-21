@@ -1,22 +1,31 @@
+#pragma once
+
 /*
  * File:   WDT.h
- * Author: chtacklind
  *
  * Created on January 25, 2012, 11:33 AM
  */
 
-#ifndef WDT_H
-#define WDT_H
-
-#include <avr/wdt.h>
-
-#undef AVR
+#include "basicTypes.hpp"
 
 namespace AVR {
 
+enum class GlobalInterruptHandlingStrategy {
+  None,
+  AlwaysOn,
+  Maintain,
+};
+
+using Basic::u1;
+
 class WDT {
 public:
-  enum Timeout {
+  enum class AutomaticTick {
+    Off,
+    On,
+  };
+
+  enum class Timeout : u1 {
     T__15ms = 0,
     T__30ms = 1,
     T__60ms = 2,
@@ -30,20 +39,87 @@ public:
   };
 
   /**
+   * Resets the WDT (call this more often than the timeout!)
+   */
+  static inline void tick() { asm volatile("wdr"); }
+
+  /**
    * Starts the watchdog timer with timeout t
    * @param t the timeout to wait for
    */
-  static inline void start(Timeout t) { wdt_enable(t); }
+  template <GlobalInterruptHandlingStrategy interruptStrategy = GlobalInterruptHandlingStrategy::None,
+            AutomaticTick handleTick = AutomaticTick::On>
+  static inline void start(Timeout t, bool reset = true, bool interrupt = false) {
+    u1 sreg;
 
-  /**
-   * Resets the WDT (call this more often than the timeout!)
-   */
-  static inline void tick() { wdt_reset(); }
+    switch (interruptStrategy) {
+    case GlobalInterruptHandlingStrategy::Maintain:
+      sreg = SREG;
+    // Fall through
+    case GlobalInterruptHandlingStrategy::AlwaysOn:
+      asm volatile("cli");
+    case GlobalInterruptHandlingStrategy::None:;
+    }
+
+    // Ensure a reset doesn't happen while we're stopping
+    if (handleTick == AutomaticTick::On)
+      tick();
+
+    // Enable changing settings and clear interrupt flag if necessary
+    WDTCSR = (interrupt << WDIF) | (1 << WDCE) | (0 << WDE);
+    // Change and start watchdog timer
+    WDTCSR = (reset << WDE) | (interrupt << WDIE) | (u1)t;
+
+    switch (interruptStrategy) {
+    case GlobalInterruptHandlingStrategy::Maintain:
+      SREG = sreg;
+      return;
+    case GlobalInterruptHandlingStrategy::AlwaysOn:
+      asm volatile("sei");
+    case GlobalInterruptHandlingStrategy::None:;
+    }
+  }
 
   /**
    * Stops the WDT. May not always succeed as WDT can be forced on by fuses
    */
-  static inline void stop() { wdt_disable(); }
+  template <GlobalInterruptHandlingStrategy interruptStrategy = GlobalInterruptHandlingStrategy::None,
+            AutomaticTick handleTick = AutomaticTick::On>
+  static inline void stop() {
+    u1 sreg;
+
+    switch (interruptStrategy) {
+    case GlobalInterruptHandlingStrategy::Maintain:
+      sreg = SREG;
+    // Fall through
+    case GlobalInterruptHandlingStrategy::AlwaysOn:
+      asm volatile("cli");
+    case GlobalInterruptHandlingStrategy::None:;
+    }
+
+    // Ensure a reset doesn't happen while we're stopping
+    if (handleTick == AutomaticTick::On)
+      tick();
+
+    // Clear WDRF in MCUSR
+    MCUSR &= ~(1 << WDRF);
+
+    // Write logical one to WDCE and WDE
+    // Keep old prescaler setting to prevent unintentional time-out
+    WDTCSR |= (1 << WDCE) | (1 << WDE);
+
+    // Turn off WDT
+    WDTCSR = 0x00;
+
+    switch (interruptStrategy) {
+    case GlobalInterruptHandlingStrategy::Maintain:
+      SREG = sreg;
+      return;
+    case GlobalInterruptHandlingStrategy::AlwaysOn:
+      asm volatile("sei");
+    case GlobalInterruptHandlingStrategy::None:;
+    }
+  }
 
   static inline bool isEnabled() { return bit_is_set(WDTCSR, WDE); }
   static inline bool isInterruptEnabled() { return bit_is_set(WDTCSR, WDIE); }
@@ -51,5 +127,3 @@ public:
 };
 
 }; // namespace AVR
-
-#endif /* WDT_H */
