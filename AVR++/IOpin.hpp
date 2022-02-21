@@ -100,7 +100,7 @@ public:
   }
 };
 
-template <Ports port, unsigned pin, bool inverted = false, bool startOn = false, bool init = true>
+template <Ports port, unsigned pin, bool inverted = false, bool startOn = false>
 class WeakOutput : public IOpin<port, pin> {
 protected:
   using IOpin<port, pin>::input;
@@ -139,34 +139,31 @@ public:
 
   inline operator bool() const { return isOn(); }
 
-private:
-  inline static void init_() __attribute__((constructor, used)) {
-    if (!init)
-      return;
+  inline static void init() {
     input();
     set(startOn);
   }
 };
 
 template <Ports port, unsigned pin, bool inverted = false, bool startOn = false>
-class Output : public WeakOutput<port, pin, inverted, startOn, false> {
+class Output : public WeakOutput<port, pin, inverted, startOn> {
 protected:
-  using WeakOutput<port, pin, inverted, startOn, false>::input;
-  using WeakOutput<port, pin, inverted, startOn, false>::output;
-  using WeakOutput<port, pin, inverted, startOn, false>::isDriveHigh;
+  using IOpin<port, pin>::output;
+  using WeakOutput<port, pin, inverted, startOn>::input;
+  using WeakOutput<port, pin, inverted, startOn>::output;
+  using WeakOutput<port, pin, inverted, startOn>::isDriveHigh;
 
 public:
   inline Output() {}
 
-  using WeakOutput<port, pin, inverted, startOn, false>::on;
-  using WeakOutput<port, pin, inverted, startOn, false>::off;
-  using WeakOutput<port, pin, inverted, startOn, false>::isOn;
-  using WeakOutput<port, pin, inverted, startOn, false>::set;
-  using WeakOutput<port, pin, inverted, startOn, false>::operator=;
-  using WeakOutput<port, pin, inverted, startOn, false>::operator bool;
+  using WeakOutput<port, pin, inverted, startOn>::on;
+  using WeakOutput<port, pin, inverted, startOn>::off;
+  using WeakOutput<port, pin, inverted, startOn>::isOn;
+  using WeakOutput<port, pin, inverted, startOn>::set;
+  using WeakOutput<port, pin, inverted, startOn>::operator=;
+  using WeakOutput<port, pin, inverted, startOn>::operator bool;
 
-private:
-  inline static void init() __attribute__((constructor, used)) {
+  inline static void init() {
     set(startOn);
     output();
   }
@@ -184,8 +181,7 @@ public:
 
   inline operator bool() const { return isActive(); }
 
-private:
-  static void init() __attribute__((constructor, used)) {
+  inline static void init() {
     input();
     setPullUp(pullUp);
   }
@@ -245,8 +241,7 @@ public:
     return v;
   }
 
-private:
-  static void init() __attribute__((constructor, used)) {
+  inline static void init() {
     input();
     if (pullUp) {
       setPullUp(pullUp);
