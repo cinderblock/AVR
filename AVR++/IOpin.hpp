@@ -15,10 +15,10 @@ namespace AVR {
 using namespace Basic;
 
 template <Ports port, unsigned pin> class IOpin {
-  constexpr static auto DDR = u1(port) - 2;
-  constexpr static auto PIN = u1(port) - 1;
-  constexpr static auto PUE = u1(port) + 0;
+  constexpr static auto PUE = u1(port) - 0;
   constexpr static auto PORT = u1(port);
+  constexpr static auto DDR = u1(port) - 1;
+  constexpr static auto PIN = u1(port) - 2;
   constexpr static u1 mask = 1 << pin;
 
   static_assert(pin <= 8, "AVR has 8-bit IO ports. '8' is allowed to disable a pin");
