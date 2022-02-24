@@ -43,8 +43,9 @@ using namespace AVR;
  * If the line is held low for a longer time period (> ~40us), all pixels will latch their latest values.
  */
 
-template <Ports Port, u1 Pin, bool HandleInterrupts, unsigned ResetMicroseconds, bool InvertedLogic, bool LittleEndian>
-void WS2812<Port, Pin, HandleInterrupts, ResetMicroseconds, InvertedLogic, LittleEndian>::sendBytes(
+template <Ports Port, u1 Pin, bool StrictTiming, bool HandleInterrupts, unsigned ResetMicroseconds, bool InvertedLogic,
+          bool LittleEndian>
+void WS2812<Port, Pin, StrictTiming, HandleInterrupts, ResetMicroseconds, InvertedLogic, LittleEndian>::sendBytes(
     u1 const *const data, u2 length) {
   if (HandleInterrupts)
     asm("cli");
@@ -56,11 +57,11 @@ void WS2812<Port, Pin, HandleInterrupts, ResetMicroseconds, InvertedLogic, Littl
   else
     return;
 
-  static_assert(realHighNanosecondsShort <= 400 + 150,
+  static_assert(Parent::PulseMath::realHighNanosecondsShort <= 400 + 150,
                 "Short pulse period is too long. Check F_CPU and WS2812 timing.");
 
   // This test depends on `ResetMicroseconds` so it needs to be inside a templated function.
-  static_assert(realLowMicrosecondsMax < ResetMicroseconds / 2,
+  static_assert(Parent::PulseMath::realLowMicrosecondsMax < ResetMicroseconds / 2,
                 "Low period is too long and could be considered a \"reset\". "
                 "Check F_CPU and WS2812 timing.");
 }

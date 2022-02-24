@@ -5,12 +5,12 @@
 
 namespace AVR {
 
-template <Ports port, u1 pin, bool HandleInterrupts = true, unsigned ResetMicroseconds = 300,
+template <Ports port, u1 pin, bool StrictTiming = false, bool HandleInterrupts = true, unsigned ResetMicroseconds = 300,
           bool InvertedOutput = false, bool LittleEndian = false>
-class WS2812 : protected PulsedOutput<port, pin, 400, InvertedOutput> {
-  using PulsedOutput<port, pin, 400, InvertedOutput>::send;
-  using PulsedOutput<port, pin, 400, InvertedOutput>::realHighNanosecondsShort;
-  using PulsedOutput<port, pin, 400, InvertedOutput>::realLowMicrosecondsMax;
+class WS2812 : protected PulsedOutput<port, pin, 400, InvertedOutput, StrictTiming> {
+  using Parent = PulsedOutput<port, pin, 400, InvertedOutput, StrictTiming>;
+
+  using Parent::send;
 
 protected:
   /**
@@ -25,7 +25,7 @@ protected:
   // naked, in our case, just removes the automatic "ret" which we do ourselves.
 
 public:
-  using PulsedOutput<port, pin, 400, InvertedOutput>::init;
+  using Parent::init;
 
   struct RGB {
     // This order matches the order of the WS2812 protocol
