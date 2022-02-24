@@ -38,6 +38,13 @@ public:
     T8000ms = 9
   };
 
+  inline constexpr static u1 timeoutBits(Timeout t) {
+    const u1 v = static_cast<u1>(t);
+    const u1 low = v & 0b111;
+    const u1 high = (v >> 3) & 0b1;
+    return v | (high << WDP3);
+  }
+
   /**
    * Resets the WDT (call this more often than the timeout!)
    */
@@ -65,10 +72,10 @@ public:
     if (handleTick == AutomaticTick::On)
       tick();
 
-    // Enable changing settings and clear interrupt flag if necessary
-    WDTCSR = (interrupt << WDIF) | (1 << WDCE) | (0 << WDE);
-    // Change and start watchdog timer
-    WDTCSR = (reset << WDE) | (interrupt << WDIE) | (u1)t;
+    // Clear interrupt flag, enable changes, and maybe enable
+    WDTCSR = (interrupt << WDIF) | (1 << WDCE) | (reset << WDE);
+    // Maybe enable interrupt, keep changes enabled, and set timeout
+    WDTCSR = (interrupt << WDIE) | (1 << WDCE) | (reset << WDE) | timeoutBits(t);
 
     switch (interruptStrategy) {
     case GlobalInterruptHandlingStrategy::Maintain:
