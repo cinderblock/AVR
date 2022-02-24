@@ -14,14 +14,14 @@ namespace AVR {
 
 using namespace Basic;
 
-template <Ports port, unsigned pin> class IOpin {
-  constexpr static auto PUE = u1(port) - 0;
-  constexpr static auto PORT = u1(port);
-  constexpr static auto DDR = u1(port) - 1;
-  constexpr static auto PIN = u1(port) - 2;
-  constexpr static u1 mask = 1 << pin;
+template <Ports Port, unsigned Pin> class IOpin {
+  constexpr static auto PUE = u1(Port) - 0;
+  constexpr static auto PORT = u1(Port);
+  constexpr static auto DDR = u1(Port) - 1;
+  constexpr static auto PIN = u1(Port) - 2;
+  constexpr static u1 mask = 1 << Pin;
 
-  static_assert(pin <= 8, "AVR has 8-bit IO ports. '8' is allowed to disable a pin");
+  static_assert(Pin <= 8, "AVR has 8-bit IO Ports. '8' is allowed to disable a Pin");
 
 public:
   inline IOpin() {}
@@ -100,11 +100,11 @@ public:
   }
 };
 
-template <Ports port, unsigned pin, bool inverted = false, bool startOn = false>
-class WeakOutput : public IOpin<port, pin> {
+template <Ports Port, unsigned Pin, bool inverted = false, bool startOn = false>
+class WeakOutput : public IOpin<Port, Pin> {
 protected:
-  using IOpin<port, pin>::input;
-  using IOpin<port, pin>::isDriveHigh;
+  using IOpin<Port, Pin>::input;
+  using IOpin<Port, Pin>::isDriveHigh;
 
 public:
   inline WeakOutput() {}
@@ -112,12 +112,12 @@ public:
   /**
    * Turns on output, whatever logic level that is
    */
-  inline static void on() { IOpin<port, pin>::set(!inverted); }
+  inline static void on() { IOpin<Port, Pin>::set(!inverted); }
 
   /**
    * Turns off output, whatever logic level that is
    */
-  inline static void off() { IOpin<port, pin>::set(inverted); }
+  inline static void off() { IOpin<Port, Pin>::set(inverted); }
 
   /**
    * Checks output state, based on if this Output is inverted or not
@@ -145,23 +145,23 @@ public:
   }
 };
 
-template <Ports port, unsigned pin, bool inverted = false, bool startOn = false>
-class Output : public WeakOutput<port, pin, inverted, startOn> {
+template <Ports Port, unsigned Pin, bool inverted = false, bool startOn = false>
+class Output : public WeakOutput<Port, Pin, inverted, startOn> {
 protected:
-  using IOpin<port, pin>::output;
-  using WeakOutput<port, pin, inverted, startOn>::input;
-  using WeakOutput<port, pin, inverted, startOn>::output;
-  using WeakOutput<port, pin, inverted, startOn>::isDriveHigh;
+  using IOpin<Port, Pin>::output;
+  using WeakOutput<Port, Pin, inverted, startOn>::input;
+  using WeakOutput<Port, Pin, inverted, startOn>::output;
+  using WeakOutput<Port, Pin, inverted, startOn>::isDriveHigh;
 
 public:
   inline Output() {}
 
-  using WeakOutput<port, pin, inverted, startOn>::on;
-  using WeakOutput<port, pin, inverted, startOn>::off;
-  using WeakOutput<port, pin, inverted, startOn>::isOn;
-  using WeakOutput<port, pin, inverted, startOn>::set;
-  using WeakOutput<port, pin, inverted, startOn>::operator=;
-  using WeakOutput<port, pin, inverted, startOn>::operator bool;
+  using WeakOutput<Port, Pin, inverted, startOn>::on;
+  using WeakOutput<Port, Pin, inverted, startOn>::off;
+  using WeakOutput<Port, Pin, inverted, startOn>::isOn;
+  using WeakOutput<Port, Pin, inverted, startOn>::set;
+  using WeakOutput<Port, Pin, inverted, startOn>::operator=;
+  using WeakOutput<Port, Pin, inverted, startOn>::operator bool;
 
   inline static void init() {
     set(startOn);
@@ -169,11 +169,11 @@ public:
   }
 };
 
-template <Ports port, unsigned pin, bool activeLow = true, bool pullUp = activeLow>
-class Input : public IOpin<port, pin> {
-  using IOpin<port, pin>::setPullUp;
-  using IOpin<port, pin>::isHigh;
-  using IOpin<port, pin>::input;
+template <Ports Port, unsigned Pin, bool activeLow = true, bool pullUp = activeLow>
+class Input : public IOpin<Port, Pin> {
+  using IOpin<Port, Pin>::setPullUp;
+  using IOpin<Port, Pin>::isHigh;
+  using IOpin<Port, Pin>::input;
 
 public:
   inline Input() {}
@@ -187,15 +187,15 @@ public:
   }
 };
 
-template <Ports port, unsigned pin, bool activeLow = true, bool pullUp = false>
-class OpenDrain : public IOpin<port, pin> {
-  using IOpin<port, pin>::setPullUp;
-  using IOpin<port, pin>::isHigh;
-  using IOpin<port, pin>::output;
-  using IOpin<port, pin>::input;
-  using IOpin<port, pin>::clr;
-  using IOpin<port, pin>::set;
-  using IOpin<port, pin>::isOutputEnabled;
+template <Ports Port, unsigned Pin, bool activeLow = true, bool pullUp = false>
+class OpenDrain : public IOpin<Port, Pin> {
+  using IOpin<Port, Pin>::setPullUp;
+  using IOpin<Port, Pin>::isHigh;
+  using IOpin<Port, Pin>::output;
+  using IOpin<Port, Pin>::input;
+  using IOpin<Port, Pin>::clr;
+  using IOpin<Port, Pin>::set;
+  using IOpin<Port, Pin>::isOutputEnabled;
 
 public:
   inline OpenDrain() {}
