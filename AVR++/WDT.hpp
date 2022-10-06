@@ -129,6 +129,12 @@ public:
 
   static inline bool isEnabled() { return bit_is_set(WDTCSR, WDE); }
   static inline bool isInterruptEnabled() { return bit_is_set(WDTCSR, WDIE); }
+  static inline void setInterruptEnable(bool enable) {
+    if (enable)
+      WDTCSR |= _BV(WDIE);
+    else
+      WDTCSR &= ~_BV(WDIE);
+  }
   static inline void clearResetFlag() { MCUSR = ~_BV(WDRF); }
 };
 
