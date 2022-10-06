@@ -43,14 +43,12 @@ struct ResetReason {
   };
 
   /**
-   * Initialize from MCUSR and reset it
+   * Initialize from MCUSR and, by default, reset it.
    */
-  inline ResetReason() : byte(MCUSR) { MCUSR = 0; }
-
-  /**
-   * Initialize from MCUSR and don't touch it
-   */
-  inline ResetReason(const bool) : byte(MCUSR) {}
+  inline ResetReason(const bool reset = true) : byte(MCUSR) {
+    // Unlike many flags on AVR, MCUSR is cleared by writting zero.
+    if (reset) MCUSR = 0;
+  }
 
   /**
    * Initialize from byte
