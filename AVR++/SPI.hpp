@@ -1,12 +1,11 @@
-/* 
+#pragma once
+
+/*
  * File:   SPI.h
  * Author: Cameron
  *
  * Created on December 10, 2014, 4:10 PM
  */
-
-#ifndef SPI_H
-#define	SPI_H
 
 #include "bitTypes.hpp"
 #include <AVR++/IOpin.hpp>
@@ -50,5 +49,4 @@ namespace AVR {
   // TODO: Support more chips here
  };
 };
-#endif	/* SPI_H */
 

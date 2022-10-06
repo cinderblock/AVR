@@ -1,12 +1,4 @@
-/* 
- * File:   bigTypes.h
- * Author: chtacklind
- *
- * Created on December 14, 2011, 5:18 PM
- */
-
-#ifndef BIGTYPES_H
-#define	BIGTYPES_H
+#pragma once
 
 #include "basicTypes.hpp"
 
@@ -31,5 +23,4 @@ typedef union {
 } f4;
 
 };
-#endif	/* BIGTYPES_H */
 

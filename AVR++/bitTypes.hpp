@@ -1,12 +1,11 @@
+#pragma once
+
 /*
  * File:   bitTypes.h
  * Author: chtacklind
  *
  * Created on December 13, 2011, 4:00 PM
  */
-
-#ifndef BITTYPES_H
-#define BITTYPES_H
 
 #include "basicTypes.hpp"
 
@@ -120,5 +119,3 @@ typedef union {
 } bf8;
 
 }; // namespace Basic
-
-#endif /* BITTYPES_H */

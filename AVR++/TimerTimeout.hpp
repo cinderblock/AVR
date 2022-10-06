@@ -1,12 +1,11 @@
+#pragma once
+
 /*
  * File:   TimerTimeout.h
  * Author: Cameron
  *
  * Created on April 1, 2016, 3:47 PM
  */
-
-#ifndef TIMERTIMEOUT_H
-#define TIMERTIMEOUT_H
 
 #include "basicTypes.hpp"
 
@@ -61,5 +60,3 @@ inline constexpr TimerTimeout::Period operator"" _ms(long double ms) { return Ti
 inline constexpr TimerTimeout::Period operator"" _s(long double s) { return TimerTimeout::Period(s); }
 
 }; // namespace AVR
-
-#endif /* TIMERTIMEOUT_H */

@@ -1,12 +1,11 @@
-/* 
+#pragma once
+
+/*
  * File:   AVRTypes.h
  * Author: Cameron
  *
  * Created on September 17, 2014, 3:47 PM
  */
-
-#ifndef AVRTYPES_H
-#define	AVRTYPES_H
 
 #undef AVR
 
@@ -25,5 +24,4 @@ namespace AVR {
 };
 
 
-#endif	/* AVRTYPES_H */
 

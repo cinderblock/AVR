@@ -1,12 +1,11 @@
+#pragma once
+
 /* 
  * File:   I2C.h
  * Author: Cameron
  *
  * Created on January 12, 2015, 12:15 AM
  */
-
-#ifndef I2C_H
-#define	I2C_H
 
 #include <avr/io.h>
 #include "bitTypes.hpp"
@@ -237,6 +236,3 @@ namespace AVR {
   }
  };
 };
-
-#endif	/* I2C_H */
-

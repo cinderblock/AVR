@@ -1,12 +1,11 @@
+#pragma once
+
 /*
  * File:   USART.h
  * Author: cameron
  *
  * Created on March 17, 2011, 11:00 AM
  */
-
-#ifndef USART_H
-#define USART_H
 
 #include "basicTypes.hpp"
 #include <avr/io.h>
@@ -117,5 +116,3 @@ extern USART<(size_t)&UCSR3A> usart3;
 #endif
 
 }; // namespace AVR
-
-#endif /* USART_H */

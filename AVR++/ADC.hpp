@@ -1,12 +1,11 @@
+#pragma once
+
 /*
  * File:   ADC.h
  * Author: Cameron
  *
  * Created on March 12, 2015, 1:44 PM
  */
-
-#ifndef ADC_H
-#define ADC_H
 
 #include <avr/io.h>
 
@@ -159,5 +158,3 @@ public:
 };
 }; // namespace ADC
 }; // namespace AVR
-
-#endif /* ADC_H */

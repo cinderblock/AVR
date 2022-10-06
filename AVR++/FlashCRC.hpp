@@ -1,3 +1,5 @@
+#pragma once
+
 #include "basicTypes.hpp"
 #include <stddef.h>
 
