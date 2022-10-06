@@ -8,10 +8,9 @@
  */
 
 #include "basicTypes.hpp"
+#include "undefAVR.hpp"
 #include <avr/io.h>
 #include <stddef.h>
-
-#undef AVR
 
 #define UCSRA _MMIO_BYTE(A + 0)
 #define UCSRB _MMIO_BYTE(A + 1)

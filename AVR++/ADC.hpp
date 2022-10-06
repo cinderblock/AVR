@@ -7,15 +7,12 @@
  * Created on March 12, 2015, 1:44 PM
  */
 
-#include <avr/io.h>
-
 #include "bitTypes.hpp"
+#include "undefAVR.hpp"
+#include <avr/io.h>
 
 // Clear out conflicting Atmel defines
 #undef ADC
-
-// Clear out conflicting gcc defines
-#undef AVR
 
 namespace AVR {
 namespace ADC {

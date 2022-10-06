@@ -7,6 +7,7 @@
  */
 
 #include "basicTypes.hpp"
+#include "undefAVR.hpp"
 #include <avr/io.h>
 
 namespace AVR {

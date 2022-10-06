@@ -7,9 +7,8 @@
  * Created on September 17, 2014, 3:47 PM
  */
 
-#undef AVR
-
 #include "basicTypes.hpp"
+#include "undefAVR.hpp"
 
 namespace AVR {
 using namespace Basic;

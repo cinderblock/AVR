@@ -1,6 +1,7 @@
 #pragma once
 
 #include "basicTypes.hpp"
+#include "undefAVR.hpp"
 
 namespace AVR {
 using namespace Basic;

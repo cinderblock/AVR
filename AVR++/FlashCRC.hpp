@@ -1,9 +1,8 @@
 #pragma once
 
 #include "basicTypes.hpp"
+#include "undefAVR.hpp"
 #include <stddef.h>
-
-#undef AVR
 
 namespace AVR {
 using namespace Basic;

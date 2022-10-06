@@ -2,6 +2,7 @@
 
 #include "ADC.hpp"
 #include "avr/interrupt.h"
+#include "undefAVR.hpp"
 
 ISR(ADC_vect, ISR_NOBLOCK);
 

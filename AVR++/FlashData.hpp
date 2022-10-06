@@ -5,12 +5,10 @@
  */
 #pragma once
 
+#include "undefAVR.hpp"
 #include <avr/io.h>
 #include <avr/pgmspace.h>
 #include <stddef.h>
-
-// Clear out conflicting gcc defines
-#undef AVR
 
 namespace AVR {
 template <size_t location, class T = uint8_t>

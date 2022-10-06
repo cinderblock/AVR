@@ -1,10 +1,8 @@
 #pragma once
 
+#include "undefAVR.hpp"
 #include <avr/io.h>
 #include <util/atomic.h>
-
-// Just in case
-#undef AVR
 
 namespace AVR {
 

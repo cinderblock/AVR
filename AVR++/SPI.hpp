@@ -8,6 +8,7 @@
  */
 
 #include "bitTypes.hpp"
+#include "undefAVR.hpp"
 #include <AVR++/IOpin.hpp>
 #include <avr/io.h>
 
