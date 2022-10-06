@@ -24,7 +24,8 @@
 namespace AVR {
 using namespace Basic;
 
-template <size_t A> class USART {
+template <size_t A>
+class USART {
 public:
   inline static void setBRR(u2 const BBR) { UBRR = BBR; }
   inline static u2 getBRR() { return UBRR; }

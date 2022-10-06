@@ -57,15 +57,15 @@ public:
     static constexpr u1 size = sizeof(RGBW);
   };
 
-  template <bool doLatchDelay = true> inline static void setLEDs(RGB const *leds, u2 pixels) {
+  template <bool doLatchDelay = true>
+  inline static void setLEDs(RGB const *leds, u2 pixels) {
     sendBytes(*leds, pixels * leds->size);
-    if (doLatchDelay)
-      _delay_us(ResetMicroseconds);
+    if (doLatchDelay) _delay_us(ResetMicroseconds);
   }
-  template <bool doLatchDelay = true> inline static void setLEDs(RGBW const *leds, u2 pixels) {
+  template <bool doLatchDelay = true>
+  inline static void setLEDs(RGBW const *leds, u2 pixels) {
     sendBytes(*leds, pixels * leds->size);
-    if (doLatchDelay)
-      _delay_us(ResetMicroseconds);
+    if (doLatchDelay) _delay_us(ResetMicroseconds);
   }
 };
 

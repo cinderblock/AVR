@@ -69,8 +69,7 @@ public:
     }
 
     // Ensure a reset doesn't happen while we're stopping
-    if (handleTick == AutomaticTick::On)
-      tick();
+    if (handleTick == AutomaticTick::On) tick();
 
     // Clear interrupt flag, enable changes, and maybe enable
     WDTCSR = (interrupt << WDIF) | (1 << WDCE) | (reset << WDE);
@@ -105,8 +104,7 @@ public:
     }
 
     // Ensure a reset doesn't happen while we're stopping
-    if (handleTick == AutomaticTick::On)
-      tick();
+    if (handleTick == AutomaticTick::On) tick();
 
     // Clear WDRF in MCUSR
     MCUSR &= ~(1 << WDRF);

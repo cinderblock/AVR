@@ -8,7 +8,8 @@
 
 namespace AVR {
 
-template <class T> class Atomic {
+template <class T>
+class Atomic {
   T value;
 
 public:

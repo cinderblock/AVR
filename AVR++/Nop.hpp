@@ -13,8 +13,7 @@ static inline void nopCycles(unsigned cycles) {
 #else
   asm volatile("; nopCycles(%0)" : : "I"(cycles));
 
-  if (cycles & 1)
-    asm volatile("nop");
+  if (cycles & 1) asm volatile("nop");
 
   cycles /= 2;
 

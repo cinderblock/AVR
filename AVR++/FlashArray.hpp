@@ -13,7 +13,8 @@
 #undef AVR
 
 namespace AVR {
-template <size_t location, unsigned int count, class T = uint8_t> class FlashArray {
+template <size_t location, unsigned int count, class T = uint8_t>
+class FlashArray {
   static_assert(sizeof(T) * count + location <= FLASHEND, "Referencing data outside of addressable space!");
 
 public:

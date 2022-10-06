@@ -14,7 +14,8 @@ namespace AVR {
 
 using namespace Basic;
 
-template <Ports Port, unsigned Pin> class IOpin {
+template <Ports Port, unsigned Pin>
+class IOpin {
   constexpr static auto PUE = u1(Port) - 0;
   constexpr static auto PORT = u1(Port);
   constexpr static auto DDR = u1(Port) - 1;
@@ -207,17 +208,13 @@ public:
   inline operator bool() const { return isActive(); }
 
   inline static void sink() {
-    if (pullUp) {
-      clr();
-    }
+    if (pullUp) { clr(); }
     output();
   }
 
   inline static void open() {
     input();
-    if (pullUp) {
-      set();
-    }
+    if (pullUp) { set(); }
   }
 
   inline static void tgl() {
@@ -243,9 +240,7 @@ public:
 
   inline static void init() {
     input();
-    if (pullUp) {
-      setPullUp(pullUp);
-    }
+    if (pullUp) { setPullUp(pullUp); }
   }
 };
 }; // namespace AVR

@@ -8,7 +8,8 @@ ISR(ADC_vect, ISR_NOBLOCK);
 namespace AVR {
 using namespace Basic;
 
-template <u1 N> class ScanningADC {
+template <u1 N>
+class ScanningADC {
 
   friend void ::ADC_vect();
 

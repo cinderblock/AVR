@@ -13,7 +13,8 @@
 #undef AVR
 
 namespace AVR {
-template <size_t location, class T = uint8_t> class FlashData {
+template <size_t location, class T = uint8_t>
+class FlashData {
   static_assert(sizeof(T) + location <= FLASHEND, "Referencing data outside of addressable space!");
 
 public:
