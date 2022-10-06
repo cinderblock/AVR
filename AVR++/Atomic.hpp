@@ -67,12 +67,12 @@ public:
 #pragma GCC diagnostic pop
 
   inline Atomic<T> &operator++() {
-    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { value++; }
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { ++value; }
     return *this;
   }
 
   inline Atomic<T> &operator++() volatile {
-    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { value++; }
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { ++value; }
     return *this;
   }
 
@@ -85,12 +85,12 @@ public:
   }
 
   inline Atomic<T> &operator--() {
-    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { value--; }
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { --value; }
     return *this;
   }
 
   inline Atomic<T> &operator--() volatile {
-    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { value--; }
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { --value; }
     return *this;
   }
 
