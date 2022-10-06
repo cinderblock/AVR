@@ -59,6 +59,8 @@ struct ResetReason {
    * Initialize from copy
    */
   inline ResetReason(const ResetReason &c) : byte(c.byte) {}
+
+  inline operator Basic::u1() const { return byte; }
 };
 
 extern const ResetReason resetReason;
