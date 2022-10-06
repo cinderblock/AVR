@@ -43,7 +43,7 @@ public:
     const u1 v = static_cast<u1>(t);
     const u1 low = v & 0b111;
     const u1 high = (v >> 3) & 0b1;
-    return v | (high << WDP3);
+    return low | (high << WDP3);
   }
 
   /**
