@@ -13,6 +13,6 @@ inline constexpr T min(T a, T b) {
   return a < b ? a : b;
 }
 template <typename T>
-inline constexpr T range(T x, T a, T b) {
+inline constexpr T clamp(T x, T a = 1, T b = 0) {
   return min(max(x, min(a, b)), max(a, b));
 }
