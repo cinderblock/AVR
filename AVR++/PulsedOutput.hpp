@@ -29,7 +29,7 @@ namespace AVR {
  *         |                                  |________________________
  *
  * @tparam Port The processor "Port" to use
- * @tparam Pin The partiular Pin of the "Port" to use
+ * @tparam Pin The particular Pin of the "Port" to use
  * @tparam ShortPulseNanos The length of the short pulse in nanoseconds
  * @tparam InvertedOutput Whether to invert the output (false)
  * @tparam LongPulseNanos The length of the long pulse in nanoseconds (2x short pulse)
@@ -52,7 +52,7 @@ public:
   using Output<Port, Pin, InvertedOutput>::init;
 
   /**
-   * @brief Group all math for pulse lengths into a single struct to declutter namespace
+   * @brief Group all math for pulse lengths into a single struct to de-clutter main namespace
    *
    */
   struct PulseMath {
@@ -70,7 +70,7 @@ public:
     static constexpr unsigned cyclesRecover = const_round(F_CPU * pulseLengthRecover);
 
     /**
-     * In order to get accurate transition times, we need to know how long other intructions that are used/executed
+     * In order to get accurate transition times, we need to know how long other instructions that are used/executed
      * take. To get these values, we need to inspect the generated assembly and count the number of instructions the
      * compiler generated. The remaining time is filled with NOPs.
      */
