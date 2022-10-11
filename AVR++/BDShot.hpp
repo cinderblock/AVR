@@ -63,7 +63,7 @@
  *     }
  *
  *     // Get useful numbers
- *     u4 period = res.getPeriodMicros();
+ *     u2 period = res.getPeriodMicros();
  *     float rpm = res.getRPM();
  *   }
  * }
@@ -84,10 +84,10 @@
  *   inline constexpr bool      isExtendedTelemetry() const;
  *   inline constexpr Telemetry getTelemetryType()    const;
  *   inline constexpr u1        getTelemetryValue()   const;
- *   inline constexpr u4        getPeriodMicros()     const;
+ *   inline constexpr u2        getPeriodMicros()     const;
  *   inline constexpr float     getRPM()              const;
  *   inline constexpr bool      isStopped()           const;
- *   inline constexpr operator  u4()                  const { return getPeriodMicros();}
+ *   inline constexpr operator  u2()                  const { return getPeriodMicros();}
  *   inline constexpr operator  bool()                const { return !isError();}
  * }
  *
@@ -211,9 +211,9 @@ public:
    */
   inline float constexpr getRPM() const { return 60e6 / (1 << getExponent()) / getBase(); }
 
-  inline u4 constexpr getPeriodMicros() const { return u4(getBase()) << getExponent(); }
+  inline u2 constexpr getPeriodMicros() const { return getBase() << getExponent(); }
 
-  inline constexpr operator u4() const { return getPeriodMicros(); }
+  inline constexpr operator u2() const { return getPeriodMicros(); }
 
   inline bool constexpr isStopped() const { return msb == 0x0f && lsb == 0xff; }
 };
