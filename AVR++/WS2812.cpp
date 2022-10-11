@@ -4,7 +4,7 @@
 #include <util/delay.h>
 
 // Yes, cpp is intentional
-// #include "PulsedOutput.cpp"
+#include "PulsedOutput.cpp"
 
 using namespace AVR;
 
