@@ -16,3 +16,8 @@ template <typename T>
 inline constexpr T clamp(T x, T a = 1, T b = 0) {
   return min(max(x, min(a, b)), max(a, b));
 }
+
+template <typename In, typename Out>
+inline constexpr Out map(In in, In inA, Out outA, In inB = 0, Out outB = 0) {
+  return (in - inA) * (outB - outA) / (inB - inA) + outA;
+}
