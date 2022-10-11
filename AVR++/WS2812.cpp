@@ -47,8 +47,7 @@ template <Ports Port, u1 Pin, bool StrictTiming, bool HandleInterrupts, unsigned
           bool LittleEndian>
 void WS2812<Port, Pin, StrictTiming, HandleInterrupts, ResetMicroseconds, InvertedLogic, LittleEndian>::sendBytes(
     u1 const *const data, u2 length) {
-  if (HandleInterrupts)
-    asm("cli");
+  if (HandleInterrupts) asm("cli");
 
   send(data, length);
 
