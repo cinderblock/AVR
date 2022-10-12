@@ -630,7 +630,7 @@ void AVR::DShot::BDShot<Port, Pin, Speed>::ReadBitISR() {
 
       "sec ; Set Carry"
       :
-      : [PIN] "I"(unsigned(Port) // Convert Port to integer
+      : [PIN] "M"(unsigned(Port) // Convert Port to integer
                   - __SFR_OFFSET // Offset because of AVR internal workings
                   - 2            // Distance from PINx to PORTx
                   ),
