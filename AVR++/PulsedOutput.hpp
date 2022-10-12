@@ -137,7 +137,7 @@ public:
     static constexpr unsigned delayCyclesB = max<signed>(0, cyclesLong - minCyclesLong - delayCyclesA);
     static constexpr unsigned delayCyclesC = max<signed>(0, cyclesRecover - minCyclesRecover);
 
-    // Values that will actually be used. For developer inspection with modern editor.
+    // Values that will actually be used. For developer inspection with modern editor. Not used in code.
 
     static constexpr auto realHighCyclesShort = minCyclesShort + delayCyclesA;
     static constexpr auto realHighCyclesLong = minCyclesLong + delayCyclesA + delayCyclesB;

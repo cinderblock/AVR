@@ -431,6 +431,9 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
                                                      + AVR::Core::Ticks::Instruction::RJmp // Back to main loop
       ;
 
+  static_assert(ticksInitialSpinLoopWorstCase < ticksInitialSpinLoop * 3,
+                "ticksInitialSpinLoopWorstCase is curiously large");
+
   /**
    * Number of ticks from the initial high-to-low transition to when we can set the timer to some value.
    *
@@ -504,7 +507,7 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
   asm("; Waiting for first transition");
 
   // Wait for initial high-to-low transition, or timeout while waiting
-  while (isHigh() || BDShotConfig::useDebounce && isHigh()) {
+  while (isHigh() || (BDShotConfig::useDebounce && isHigh())) {
     if (ResetWatchdog::WaitingFirstTransitionFast) asm("wdr");
 
     // If timer overflows, see if we've overflowed enough to know we're not getting a response.
@@ -570,7 +573,7 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
     do {
       if (Debug::EmitPulsesAtIdle) Debug::Pin::tgl();
       asm("; Ultra Fast Loop. Waiting for transition to high.");
-    } while (!isHigh() || BDShotConfig::useDebounce && !isHigh());
+    } while (!isHigh() || (BDShotConfig::useDebounce && !isHigh()));
     TCNT0 = syncValue;
     if (Debug::EmitPulseAtSync) {
       Debug::Pin::on();
@@ -579,7 +582,7 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
     do {
       if (Debug::EmitPulsesAtIdle) Debug::Pin::tgl();
       asm("; Ultra Fast Loop. Waiting for transition to low.");
-    } while (isHigh() || BDShotConfig::useDebounce && isHigh());
+    } while (isHigh() || (BDShotConfig::useDebounce && isHigh()));
     TCNT0 = syncValue;
     if (Debug::EmitPulseAtSync) {
       Debug::Pin::on();

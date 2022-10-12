@@ -194,9 +194,10 @@ public:
     State_Event = 0x0E,
   };
   inline Telemetry constexpr getTelemetryType() const { return static_cast<Telemetry>(msb); }
-  inline u1 constexpr getTelemetryValue() const { return BDShotConfig::supportEDT ? lsb : u1(-1); }
 
-  inline constexpr u2 getBase() const { return (u2(BDShotConfig::supportEDT | msb & 1) << 8) | lsb; }
+  inline u1 constexpr getTelemetryValue() const { return BDShotConfig::supportEDT ? lsb : -1; }
+
+  inline constexpr u2 getBase() const { return (u2(BDShotConfig::supportEDT | (msb & 1)) << 8) | lsb; }
   inline constexpr u2 getExponent() const { return (msb >> 1) & ((1 << exponentBits) - 1); }
 
   inline u2 constexpr getPeriodMicros() const { return getBase() << getExponent(); }

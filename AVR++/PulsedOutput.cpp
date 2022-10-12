@@ -97,6 +97,9 @@ void PulsedOutput<Port, Pin, ShortPulseNanos, InvertedOutput, BalanceRecoveryTim
     asm("; PulsedOutput Delay C = %0 cycles" : : "I"(PulseMath::delayCyclesC));
     nopCycles(PulseMath::delayCyclesC);
     asm("; End of PulsedOutput Delay C");
+
+    // prevent GCC warning
+    asm goto("" ::: : OFF_JUMP, RECOVERY_JUMP);
   }
 
   // if (ih == InterruptHandling::Byte) asm volatile("reti");
