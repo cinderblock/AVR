@@ -554,6 +554,7 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
   while (true) {
     do {
       if (Debug::EmitPulsesAtIdle) Debug::Pin::tgl();
+      asm("; Ultra Fast Loop. Waiting for transition to high.");
     } while (!isHigh() || BDShotConfig::useDebounce && !isHigh());
     TCNT0 = syncValue;
     if (Debug::EmitPulseAtSync) {
@@ -562,6 +563,7 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
     }
     do {
       if (Debug::EmitPulsesAtIdle) Debug::Pin::tgl();
+      asm("; Ultra Fast Loop. Waiting for transition to low.");
     } while (isHigh() || BDShotConfig::useDebounce && isHigh());
     TCNT0 = syncValue;
     if (Debug::EmitPulseAtSync) {
