@@ -19,8 +19,6 @@
 // Yes, we're including the cpp
 #include "DShot.cpp"
 
-constexpr auto BitOverflowFlag = OCF0A;
-
 template <AVR::Ports Port, int Pin, AVR::DShot::Speeds Speed>
 void AVR::DShot::BDShot<Port, Pin, Speed>::init() {
   using Basic::u1;
@@ -124,131 +122,6 @@ static_assert(!const_string_equal(Result2Reg, "r24"), "Result2Reg must not be A 
 static_assert(!const_string_equal(Result2Reg, "r30"), "Result2Reg must not be Z register");
 static_assert(!const_string_equal(Result2Reg, "r31"), "Result2Reg must not be Z register");
 
-namespace MakeResponse {
-
-/**
- * @return false if correct
- */
-inline static constexpr bool isBadChecksum(Basic::u1 n3, Basic::u1 n2, Basic::u1 n1, Basic::u1 n0) {
-  return 0xf ^ n0 ^ n1 ^ n2 ^ n3;
-}
-
-Basic::u1 decodeNibble(Basic::u1 b) { return GCR::decode(b & 0x1f); }
-
-static AVR::DShot::Response fromResult() {
-  asm("; fromResult");
-
-  // All done!
-
-  // Disable interrupt
-  TIMSK0 = 0;
-
-  /**
-   * Here is where we need the "magic" to happen.
-   *
-   * In getResponse(), in our spin loop, waiting for transitions, GCC thinks that it will never get out of it.
-   * If we returned from this interrupt like normal, we'd go right back into that infinite loop.
-   * Fortunately getResponse() needs to return a Response.
-   * So if we can just get some other function to return that Response for us...
-   *
-   * First we remove the last return pointer from the stack, which currently is somewhere in the middle of that
-   * loop. Now, if we "return", we'll basically be returning from getResponse() instead. To seal the deal, we jump
-   * to a function that parses Result into a Response and returns it as we need.
-   */
-
-  // Pop the interrupt return location off the stack (to get out of the ultra fast main loop)
-  // We can also trash the previously set Z register value since we don't need it.
-  asm("pop r30");
-  asm("pop r30");
-
-  Basic::u1 n0, n1, n2, n3;
-
-  asm("; NOW WE GET TO USE OUR REGISTERS: " Result0Reg " " Result1Reg " " Result2Reg "\n\t");
-
-  asm(
-      // First we undo the shifting
-
-      // Use r24 instead of __temp_reg__ because we can
-
-      "mov  " /*        */ "r24, " Result2Reg "\t; Copy byte 2\n\t"
-      "lsr  " /*        */ "r24\t; Shift the copy\n\t"
-      "eor  " Result2Reg ", r24\t; XOR the copy back\n\t"
-
-      "mov  " /*        */ "r24, " Result1Reg "\t; Copy byte 1\n\t"
-      "ror  " /*        */ "r24\t; Shift the copy\n\t"
-      "eor  " Result1Reg ", r24\t; XOR the copy back\n\t"
-
-      "mov  " /*        */ "r24, " Result0Reg "\t; Copy byte 0\n\t"
-      "ror  " /*        */ "r24\t; Shift the copy\n\t"
-      "eor  " Result0Reg ", r24\t; XOR the copy back\n\t"
-
-      // Now we turn 3 bytes into 4 quintets
-
-      // Layout:                 Result 2   Result 1   Result 0 Carry
-      "mov  r24, " Result0Reg "\t;   3333  3222 2211  1110 0000 x\n\t" // n0 is ready. Put it directly into r24.
-
-      "rol  " /**/ Result1Reg "\t;   3333  2222 211x  1110 0000 3\n\t"
-      "rol  " /**/ Result2Reg "\t; 3 3333  2222 211x  1110 0000 x\n\t" // n3 is ready in Result2Reg for later.
-
-      "ror  " /**/ Result1Reg "\t; 3 3333  x222 2211  1110 0000 x\n\t"
-      "ror  " /**/ Result1Reg "\t; 3 3333  xx22 2221  1110 0000 1\n\t"
-      "ror  " /**/ Result0Reg "\t; 3 3333  xx22 2221  1111 0000 0\n\t"
-      "ror  " /**/ Result1Reg "\t; 3 3333  xxx2 2222  1111 0000 1\n\t" // n2 is ready in Result1Reg for later.
-
-      "ror  " /**/ Result0Reg "\t; 3 3333  xxx2 2222  1111 1000 0\n\t"
-      "ror  " /**/ Result0Reg "\t; 3 3333  xxx2 2222  0111 1100 0\n\t"
-      "ror  " /**/ Result0Reg "\t; 3 3333  xxx2 2222  0011 1110 0\n\t"
-      "ror  " /**/ Result0Reg "\t; 3 3333  xxx2 2222  0001 1111 0\n\t" // n1 is ready in Result0Reg for later.
-
-      // Decode the GCR encoded quintets into nibbles
-
-      "call %x[decodeNibble]\t; Decode nibbles\n\t"
-      "mov  %[n0], r24\n\t"
-
-      "mov  r24, " Result0Reg "\n\t"
-      "call %x[decodeNibble]\t; Decode nibbles\n\t"
-      "mov  %[n1], r24\n\t"
-
-      "mov  r24, " Result1Reg "\n\t"
-      "call %x[decodeNibble]\t; Decode nibbles\n\t"
-      "mov  %[n2], r24\n\t"
-
-      "mov  r24, " Result2Reg "\n\t"
-      "call %x[decodeNibble]\t; Decode nibbles\n\t"
-      "mov  %[n3], r24\n\t"
-
-      // Let the compiler do the rest
-
-      : [n0] "=r"(n0), [n1] "=r"(n1), [n2] "=r"(n2), [n3] "=r"(n3)
-      : [decodeNibble] "p"(&decodeNibble)
-      : "r24", Result0Reg, Result1Reg, Result2Reg);
-
-  using AVR::DShot::Response;
-
-  if (n3 == 0xff) return Response::Error::BadDecodeFirstNibble;
-  if (n2 == 0xff) return Response::Error::BadDecodeSecondNibble;
-  if (n1 == 0xff) return Response::Error::BadDecodeThirdNibble;
-  if (n0 == 0xff) return Response::Error::BadDecodeFourthNibble;
-
-  if (isBadChecksum(n3, n2, n1, n0)) return Response::Error::BadChecksum;
-
-  // We've checked the checksum, so we can safely ignore the checksum nibble
-  return {n3, n2, n1};
-}
-} // namespace MakeResponse
-
-// We need to mark this as Naked for maximum performance because the generated entry/exit sequences are unnecessary in
-// our known execution path.
-ISR(TIMER0_COMPA_vect, ISR_NAKED) {
-  asm("; Start of TIMER0_COMPA_vect");
-
-  if (AVR::DShot::Debug::EmitPulseAtSample) AVR::DShot::Debug::Pin::on();
-
-  // If we got *extra* fancy, we could save 3 clock cycles by putting this "ijmp" directly in the interrupt table
-  // Jump to Z register, set in getResponse() with setZ()
-  asm("ijmp ; Jump to Z register");
-}
-
 /**
  * @brief Set the Z register to the desired location
  *
@@ -287,12 +160,6 @@ constexpr unsigned RetI = 5; // Or is it 4?
 } // namespace Ticks
 } // namespace Core
 } // namespace AVR
-
-// We're expecting 4 nibbles in the response, each encoded with GCR
-// We don't count the extra bit because it's handled manually as it's the trigger to start reading the response and is
-// *always* 0.
-static constexpr unsigned expectedNibbles = 4;
-static constexpr Basic::u1 ExpectedBits = expectedNibbles * GCR::inBits;
 
 template <AVR::Ports Port, int Pin, AVR::DShot::Speeds Speed>
 AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
@@ -368,6 +235,12 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
   // These are probably defunct
   static_assert(Periods::delayPeriodTicks == 43, "delayPeriodTicks is not what we expect!");
   static_assert(Periods::delayHalfPeriodTicks == 21, "delayHalfPeriodTicks is not what we expect!");
+
+  // We're expecting 4 nibbles in the response, each encoded with GCR
+  // We don't count the extra bit because it's handled manually as it's the trigger to start reading the response and is
+  // *always* 0.
+  static constexpr unsigned expectedNibbles = 4;
+  static constexpr Basic::u1 ExpectedBits = expectedNibbles * GCR::inBits;
 
   constexpr unsigned responseTimeoutTicks = (((long long)(F_CPU)) * AVR::DShot::BDShotConfig::responseTimeout) / 1e6;
 
@@ -504,6 +377,8 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
   static_assert(Periods::delayPeriodTicks > adjustInitialTicks, "delayPeriodTicks is too small");
   static_assert(Periods::delayPeriodTicks < 200, "delayPeriodTicks is too large");
 
+  constexpr auto BitOverflowFlagMask = 1 << OCF0A;
+
   asm("; Waiting for first transition");
 
   // Wait for initial high-to-low transition, or timeout while waiting
@@ -511,13 +386,13 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
     if (ResetWatchdog::WaitingFirstTransitionFast) asm("wdr");
 
     // If timer overflows, see if we've overflowed enough to know we're not getting a response.
-    if (!(TIFR0 & _BV(BitOverflowFlag))) continue;
+    if (!(TIFR0 & BitOverflowFlagMask)) continue;
 
     // Timeout waiting for response
     if (overflowsWhileWaiting++ > responseTimeoutOverflows) return AVR::DShot::Response::Error::ResponseTimeout;
 
     // Clear the flag so we can wait for the next overflow
-    TIFR0 |= _BV(BitOverflowFlag);
+    TIFR0 |= BitOverflowFlagMask;
 
     if (ResetWatchdog::WaitingFirstTransitionTimerOverflow) asm("wdr");
   }
@@ -530,7 +405,7 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
   TCNT0 = timerCounterValueInitial;
 
   // Clear flag by setting it
-  TIFR0 |= _BV(BitOverflowFlag);
+  TIFR0 |= BitOverflowFlagMask;
 
   // The magic that lets this work on *any* pin
   setZ(&ReadBitISR);
@@ -562,7 +437,7 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
   asm("; DON'T MESS WITH REGISTERS: " Result0Reg " " Result1Reg " " Result2Reg " r30 r31 or Carry\n\t");
 
   // Enable interrupt
-  TIMSK0 = _BV(BitOverflowFlag);
+  TIMSK0 = BitOverflowFlagMask;
 
   register u1 const syncValue = timerCounterValueSync;
 
@@ -594,6 +469,119 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
   // The ISR messes with the call stack and will "return" for us.
   asm volatile("; UltraLoop End");
 }
+
+namespace MakeResponse {
+
+/**
+ * @return false if correct
+ */
+inline static constexpr bool isBadChecksum(Basic::u1 n3, Basic::u1 n2, Basic::u1 n1, Basic::u1 n0) {
+  return 0xf ^ n0 ^ n1 ^ n2 ^ n3;
+}
+
+Basic::u1 decodeNibble(Basic::u1 b) { return GCR::decode(b & 0x1f); }
+
+static AVR::DShot::Response fromResult() {
+  asm("; fromResult");
+
+  // All done!
+
+  // Disable interrupt
+  TIMSK0 = 0;
+
+  /**
+   * Here is where we need the "magic" to happen.
+   *
+   * In getResponse(), in our spin loop, waiting for transitions, GCC thinks that it will never get out of it.
+   * If we returned from this interrupt like normal, we'd go right back into that infinite loop.
+   * Fortunately getResponse() needs to return a Response.
+   * So if we can just get some other function to return that Response for us...
+   *
+   * First we remove the last return pointer from the stack, which currently is somewhere in the middle of that
+   * loop. Now, if we "return", we'll basically be returning from getResponse() instead. To seal the deal, we jump
+   * to a function that parses Result into a Response and returns it as we need.
+   */
+
+  // Pop the interrupt return location off the stack (to get out of the ultra fast main loop)
+  // We can also trash the previously set Z register value since we don't need it.
+  asm("pop r30");
+  asm("pop r30");
+
+  Basic::u1 n0, n1, n2, n3;
+
+  asm("; NOW WE GET TO USE OUR REGISTERS: " Result0Reg " " Result1Reg " " Result2Reg "\n\t");
+
+  asm(
+      // First we undo the shifting
+
+      // Use r24 instead of __temp_reg__ because we can
+
+      "mov  " /*        */ "r24, " Result2Reg "\t; Copy byte 2\n\t"
+      "lsr  " /*        */ "r24\t; Shift the copy\n\t"
+      "eor  " Result2Reg ", r24\t; XOR the copy back\n\t"
+
+      "mov  " /*        */ "r24, " Result1Reg "\t; Copy byte 1\n\t"
+      "ror  " /*        */ "r24\t; Shift the copy\n\t"
+      "eor  " Result1Reg ", r24\t; XOR the copy back\n\t"
+
+      "mov  " /*        */ "r24, " Result0Reg "\t; Copy byte 0\n\t"
+      "ror  " /*        */ "r24\t; Shift the copy\n\t"
+      "eor  " Result0Reg ", r24\t; XOR the copy back\n\t"
+
+      // Now we turn 3 bytes into 4 quintets
+
+      // Layout:                 Result 2   Result 1   Result 0 Carry
+      "mov  r24, " Result0Reg "\t;   3333  3222 2211  1110 0000 x\n\t" // n0 is ready. Put it directly into r24.
+
+      "rol  " /**/ Result1Reg "\t;   3333  2222 211x  1110 0000 3\n\t"
+      "rol  " /**/ Result2Reg "\t; 3 3333  2222 211x  1110 0000 x\n\t" // n3 is ready in Result2Reg for later.
+
+      "ror  " /**/ Result1Reg "\t; 3 3333  x222 2211  1110 0000 x\n\t"
+      "ror  " /**/ Result1Reg "\t; 3 3333  xx22 2221  1110 0000 1\n\t"
+      "ror  " /**/ Result0Reg "\t; 3 3333  xx22 2221  1111 0000 0\n\t"
+      "ror  " /**/ Result1Reg "\t; 3 3333  xxx2 2222  1111 0000 1\n\t" // n2 is ready in Result1Reg for later.
+
+      "ror  " /**/ Result0Reg "\t; 3 3333  xxx2 2222  1111 1000 0\n\t"
+      "ror  " /**/ Result0Reg "\t; 3 3333  xxx2 2222  0111 1100 0\n\t"
+      "ror  " /**/ Result0Reg "\t; 3 3333  xxx2 2222  0011 1110 0\n\t"
+      "ror  " /**/ Result0Reg "\t; 3 3333  xxx2 2222  0001 1111 0\n\t" // n1 is ready in Result0Reg for later.
+
+      // Decode the GCR encoded quintets into nibbles
+
+      "call %x[decodeNibble]\t; Decode nibbles\n\t"
+      "mov  %[n0], r24\n\t"
+
+      "mov  r24, " Result0Reg "\n\t"
+      "call %x[decodeNibble]\t; Decode nibbles\n\t"
+      "mov  %[n1], r24\n\t"
+
+      "mov  r24, " Result1Reg "\n\t"
+      "call %x[decodeNibble]\t; Decode nibbles\n\t"
+      "mov  %[n2], r24\n\t"
+
+      "mov  r24, " Result2Reg "\n\t"
+      "call %x[decodeNibble]\t; Decode nibbles\n\t"
+      "mov  %[n3], r24\n\t"
+
+      // Let the compiler do the rest
+
+      : [n0] "=r"(n0), [n1] "=r"(n1), [n2] "=r"(n2), [n3] "=r"(n3)
+      : [decodeNibble] "p"(&decodeNibble)
+      : "r24", Result0Reg, Result1Reg, Result2Reg);
+
+  using AVR::DShot::Response;
+
+  if (n3 == 0xff) return Response::Error::BadDecodeFirstNibble;
+  if (n2 == 0xff) return Response::Error::BadDecodeSecondNibble;
+  if (n1 == 0xff) return Response::Error::BadDecodeThirdNibble;
+  if (n0 == 0xff) return Response::Error::BadDecodeFourthNibble;
+
+  if (isBadChecksum(n3, n2, n1, n0)) return Response::Error::BadChecksum;
+
+  // We've checked the checksum, so we can safely ignore the checksum nibble
+  return {n3, n2, n1};
+}
+} // namespace MakeResponse
 
 template <AVR::Ports Port, int Pin, AVR::DShot::Speeds Speed>
 void AVR::DShot::BDShot<Port, Pin, Speed>::ReadBitISR() {
@@ -656,6 +644,18 @@ void AVR::DShot::BDShot<Port, Pin, Speed>::ReadBitISR() {
 
 DoneSamplingPin:
   asm("reti");
+}
+
+// We need to mark this as Naked for maximum performance because the generated entry/exit sequences are unnecessary in
+// our known execution path.
+ISR(TIMER0_COMPA_vect, ISR_NAKED) {
+  asm("; Start of TIMER0_COMPA_vect");
+
+  if (AVR::DShot::Debug::EmitPulseAtSample) AVR::DShot::Debug::Pin::on();
+
+  // If we got *extra* fancy, we could save 3 clock cycles by putting this "ijmp" directly in the interrupt table
+  // Jump to Z register, set in getResponse() with setZ()
+  asm("ijmp ; Jump to Z register");
 }
 
 static constexpr bool HandleInterrupts = 0;
