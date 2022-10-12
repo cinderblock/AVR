@@ -199,6 +199,8 @@ public:
   inline constexpr u2 getBase() const { return (u2(BDShotConfig::supportEDT | msb & 1) << 8) | lsb; }
   inline constexpr u2 getExponent() const { return (msb >> 1) & ((1 << exponentBits) - 1); }
 
+  inline u2 constexpr getPeriodMicros() const { return getBase() << getExponent(); }
+
   /**
    * @brief Convert internal notation to float rpm
    * @warning Check there is no error before calling this function
@@ -214,9 +216,7 @@ public:
    *
    * @return float eRPM of motor
    */
-  inline float constexpr getRPM() const { return 60e6 / (1 << getExponent()) / getBase(); }
-
-  inline u2 constexpr getPeriodMicros() const { return getBase() << getExponent(); }
+  inline float constexpr getRPM(u1 polePairs = 1) const { return 60e6 / (u3(polePairs) * getPeriodMicros()); }
 
   inline constexpr operator u2() const { return getPeriodMicros(); }
 
