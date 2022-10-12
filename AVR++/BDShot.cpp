@@ -124,23 +124,6 @@ static_assert(!const_string_equal(Result2Reg, "r24"), "Result2Reg must not be A 
 static_assert(!const_string_equal(Result2Reg, "r30"), "Result2Reg must not be Z register");
 static_assert(!const_string_equal(Result2Reg, "r31"), "Result2Reg must not be Z register");
 
-/**
- * This is the only way to tell GCC to use fixed registers for certain bytes.
- * This will generate warnings for other functions.
- * But we don't actually pollute anything that GCC doesn't expect to be mangled outside of a short un-interruptable
- * block.
- *
- * Ignore the warnings:
- *  - warning: call-clobbered register used for global register variable
- *  - warning: fixed register r19 used to pass parameter to function
- *
- * These registers are not used outside of processing a single response and will be reset on every run.
- * So, contrary to many standards, we want to use a "call-clobbered" register because these aren't really global.
- */
-register Basic::u1 result0 asm(Result0Reg);
-register Basic::u1 result1 asm(Result1Reg);
-register Basic::u1 result2 asm(Result2Reg);
-
 namespace MakeResponse {
 
 /**
@@ -559,9 +542,16 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
   //     "push " Result1Reg "\n\t"
   //     "push " Result2Reg "\n\t");
 
-  result0 = FinishedMarker >> (8 * 0);
-  result1 = FinishedMarker >> (8 * 1);
-  result2 = FinishedMarker >> (8 * 2);
+  asm("; Setting up our magic registers: " Result0Reg " " Result1Reg " " Result2Reg " r30 r31 or Carry\n\t");
+
+  asm("ldi " Result0Reg ", %[result0] ; result0,\n\t"
+      "ldi " Result1Reg ", %[result1] ; result1\n\t"
+      "ldi " Result2Reg ", %[result2] ; result2\n\t"
+      :
+      : [result0] "M"(FinishedMarker >> (8 * 0)), // lsb
+        [result1] "M"(FinishedMarker >> (8 * 1)),
+        [result2] "M"(FinishedMarker >> (8 * 2)) // msb
+      : Result0Reg, Result1Reg, Result2Reg);
 
   // Make sure Carry starts in expected state
   asm("clc \t;Clear Carry Flag");
@@ -645,7 +635,8 @@ void AVR::DShot::BDShot<Port, Pin, Speed>::ReadBitISR() {
       "rol " Result0Reg "\n\t"
       "rol " Result1Reg "\n\t"
       "rol " Result2Reg "\n\t"
-      "; And get Carry from Result. If set, it indicates we're done.");
+      "; And get Carry from Result. If set, it indicates we're done." ::
+          : Result0Reg, Result1Reg, Result2Reg);
 
   // Reti if Carry is clear to continue receiving bits
   asm goto("brcc %l[DoneSamplingPin]; Branch to reti if Carry cleared" : : : : DoneSamplingPin);
