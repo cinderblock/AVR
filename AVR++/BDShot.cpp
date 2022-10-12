@@ -161,6 +161,8 @@ constexpr unsigned RetI = 5; // Or is it 4?
 } // namespace Core
 } // namespace AVR
 
+static u1 overflowsUntilTimeout;
+
 template <AVR::Ports Port, int Pin, AVR::DShot::Speeds Speed>
 AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
   /**
@@ -246,9 +248,8 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
 
   // We're overflowing with OCRA now which sets lower TOP than 0xff
   constexpr unsigned responseTimeoutOverflows = responseTimeoutTicks / Periods::delayPeriodTicks + 1;
-  u1 overflowsWhileWaiting = 0;
 
-  static_assert(responseTimeoutOverflows < u4(1) << (8 * sizeof(overflowsWhileWaiting)),
+  static_assert(responseTimeoutOverflows < u4(1) << (8 * sizeof(overflowsUntilTimeout)),
                 "responseTimeoutOverflows is too large for this implementation");
 
   /**
@@ -270,19 +271,13 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
   using namespace AVR::DShot::BDShotConfig;
 
   /**
-   * Number of ticks it takes the initial spin loop to check for the initial high-to-low transition.
-   * Most of the time, this number is used.
-   * Sometimes, the timer has overflowed and we need to check that our timeout counter hasn't reached zero.
+   * Number of ticks it takes the ultra fast main spin loop to check for a transition
    *
-   * @see `ticksInitialSpinLoopWorstCase`
-   *
-   * @note Maximum accuracy we can achieve of timing on initial transition
-   * @note These lists are generated from looking at the generated assembly for these functions.
+   * @note Maximum accuracy we can achieve of timing on transition
    */
-  constexpr unsigned ticksInitialSpinLoop = 1                                           // Check Pin
-                                            + ResetWatchdog::WaitingFirstTransitionFast // WDR
-                                            + AVR::Core::Ticks::Instruction::RJmp       // Loop
-                                            + AVR::Core::Ticks::Instruction::Skip1Word  // Didn't overflow
+  constexpr unsigned ticksSpinLoop = Debug::EmitPulsesAtIdle               // Pin toggle adds a clock cycle to the loop
+                                     + 1                                   // Reading the pin state takes 1 clock cycle
+                                     + AVR::Core::Ticks::Instruction::RJmp // Jump to start of loop
       ;
 
   /**
@@ -316,19 +311,10 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
   constexpr unsigned ticksFromTransitionToInitialTimerSync =
       AVR::Core::Ticks::Instruction::Skip1Word      // We test with a `sbic` instruction
       + 2 * BDShotConfig::useDebounce               // Debounce compensation
+      + 1                                           // cli
       + ResetWatchdog::ReceivedFirstTransition      // WDR
       + AVR::Core::Ticks::Instruction::LoaDImediate // Set register to immediate
       + AVR::Core::Ticks::Instruction::Out          // Set timer counter from register
-      ;
-
-  /**
-   * Number of ticks it takes the ultra fast main spin loop to check for a transition
-   *
-   * @note Maximum accuracy we can achieve of timing on transition
-   */
-  constexpr unsigned ticksSpinLoop = Debug::EmitPulsesAtIdle               // Pin toggle adds a clock cycle to the loop
-                                     + 1                                   // Reading the pin state takes 1 clock cycle
-                                     + AVR::Core::Ticks::Instruction::RJmp // Jump to start of loop
       ;
 
   /**
@@ -352,7 +338,7 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
   // constexpr unsigned adjustInitialTicks = adjustSyncTicks + 10;
   constexpr unsigned adjustInitialTicks =
       // Half of the normal loop time
-      ticksInitialSpinLoop / 2
+      ticksSpinLoop / 2
       // Initial sync
       + ticksFromTransitionToInitialTimerSync
       // Compensate for ISR service time
@@ -377,35 +363,31 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
   static_assert(Periods::delayPeriodTicks > adjustInitialTicks, "delayPeriodTicks is too small");
   static_assert(Periods::delayPeriodTicks < 200, "delayPeriodTicks is too large");
 
-  constexpr auto BitOverflowFlagMask = 1 << OCF0A;
+  constexpr auto OverflowBitMask = 1 << OCF0A;
 
-  asm("; Waiting for first transition");
+  TCNT0 = 0;
+  TIFR0 |= OverflowBitMask; // Clear flag by setting it
 
-  // Wait for initial high-to-low transition, or timeout while waiting
-  while (isHigh() || (BDShotConfig::useDebounce && isHigh())) {
-    if (ResetWatchdog::WaitingFirstTransitionFast) asm("wdr");
+  setZ(&WaitForResponseISR);
+  overflowsUntilTimeout = responseTimeoutOverflows;
 
-    // If timer overflows, see if we've overflowed enough to know we're not getting a response.
-    if (!(TIFR0 & BitOverflowFlagMask)) continue;
+  // Enable interrupt
+  TIMSK0 = OverflowBitMask;
 
-    // Timeout waiting for response
-    if (overflowsWhileWaiting++ > responseTimeoutOverflows) return AVR::DShot::Response::Error::ResponseTimeout;
+  do {
+    asm("; Waiting for first transition");
+  } while (isHigh() || (BDShotConfig::useDebounce && isHigh()));
 
-    // Clear the flag so we can wait for the next overflow
-    TIFR0 |= BitOverflowFlagMask;
-
-    if (ResetWatchdog::WaitingFirstTransitionTimerOverflow) asm("wdr");
-  }
+  // Make *sure* we can't get interrupted
+  asm("cli");
 
   // Yay! We're getting a response. Try and receive it!
   if (ResetWatchdog::ReceivedFirstTransition) asm("wdr");
 
   // Set timer so that it matches trigger register in 1.5 bit periods
   asm("; Initial Ticks");
-  TCNT0 = timerCounterValueInitial;
 
-  // Clear flag by setting it
-  TIFR0 |= BitOverflowFlagMask;
+  TCNT0 = timerCounterValueInitial;
 
   // The magic that lets this work on *any* pin
   setZ(&ReadBitISR);
@@ -436,8 +418,7 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
 
   asm("; DON'T MESS WITH REGISTERS: " Result0Reg " " Result1Reg " " Result2Reg " r30 r31 or Carry\n\t");
 
-  // Enable interrupt
-  TIMSK0 = BitOverflowFlagMask;
+  asm("sei");
 
   register u1 const syncValue = timerCounterValueSync;
 
@@ -470,20 +451,7 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
   asm volatile("; UltraLoop End");
 }
 
-namespace MakeResponse {
-
-/**
- * @return false if correct
- */
-inline static constexpr bool isBadChecksum(Basic::u1 n3, Basic::u1 n2, Basic::u1 n1, Basic::u1 n0) {
-  return 0xf ^ n0 ^ n1 ^ n2 ^ n3;
-}
-
-Basic::u1 decodeNibble(Basic::u1 b) { return GCR::decode(b & 0x1f); }
-
-static AVR::DShot::Response fromResult() {
-  asm("; fromResult");
-
+inline static void exceptionEscapeISR() {
   // All done!
 
   // Disable interrupt
@@ -506,6 +474,22 @@ static AVR::DShot::Response fromResult() {
   // We can also trash the previously set Z register value since we don't need it.
   asm("pop r30");
   asm("pop r30");
+}
+namespace MakeResponse {
+
+/**
+ * @return false if correct
+ */
+inline static constexpr bool isBadChecksum(Basic::u1 n3, Basic::u1 n2, Basic::u1 n1, Basic::u1 n0) {
+  return 0xf ^ n0 ^ n1 ^ n2 ^ n3;
+}
+
+Basic::u1 decodeNibble(Basic::u1 b) { return GCR::decode(b & 0x1f); }
+
+static AVR::DShot::Response fromResult() {
+  asm("; fromResult");
+
+  exceptionEscapeISR();
 
   Basic::u1 n0, n1, n2, n3;
 
@@ -582,6 +566,20 @@ static AVR::DShot::Response fromResult() {
   return {n3, n2, n1};
 }
 } // namespace MakeResponse
+
+template <AVR::Ports Port, int Pin, AVR::DShot::Speeds Speed>
+AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::WaitForResponseISR() {
+  if (overflowsUntilTimeout) {
+    overflowsUntilTimeout--;
+    asm("reti");
+  }
+
+  // Timeout waiting for response
+
+  exceptionEscapeISR();
+
+  return AVR::DShot::Response::Error::ResponseTimeout;
+}
 
 template <AVR::Ports Port, int Pin, AVR::DShot::Speeds Speed>
 void AVR::DShot::BDShot<Port, Pin, Speed>::ReadBitISR() {

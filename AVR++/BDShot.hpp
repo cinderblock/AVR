@@ -226,6 +226,7 @@ public:
 
 template <Ports Port, int Pin, Speeds Speed = NominalSpeed>
 class BDShot : protected DShot<Port, Pin, Speed, true> {
+  static Response WaitForResponseISR();
   static void ReadBitISR() __attribute__((naked));
 
 protected:
