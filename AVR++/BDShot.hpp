@@ -104,13 +104,18 @@ namespace BDShotConfig {
 constexpr double exitBootloaderDelay = 400 /* or 1300 */; // ms
 constexpr unsigned responseTimeout = 50;                  // us
 
-constexpr bool useUltraLoop = true;
-
 /**
  * @brief Should we support the new Extended DShot Telemetry protocol?
  * @see https://brushlesswhoop.com/dshot-and-bidirectional-dshot/#extended-dshot-telemetry-edt
  */
 constexpr bool supportEDT = true;
+
+constexpr bool useDebounce = false;
+
+// Not needed.
+// Saves a word of flash and a clock cycle, but this is at the end when speed doesn't matter as much.
+// Relative jumps are faster but can't reach whole program space.
+constexpr bool useRelativeJmpAtEndISR = true;
 
 // All of these are way overkill. The minimum watchdog timeout is 15ms and the maximum time here is 250us.
 namespace ResetWatchdog {
@@ -191,7 +196,7 @@ public:
   inline Telemetry constexpr getTelemetryType() const { return static_cast<Telemetry>(msb); }
   inline u1 constexpr getTelemetryValue() const { return BDShotConfig::supportEDT ? lsb : u1(-1); }
 
-  inline constexpr u2 getBase() const { return (u2(BDShotConfig::supportEDT ? 1 : msb & 1) << 8) | lsb; }
+  inline constexpr u2 getBase() const { return (u2(BDShotConfig::supportEDT | msb & 1) << 8) | lsb; }
   inline constexpr u2 getExponent() const { return (msb >> 1) & ((1 << exponentBits) - 1); }
 
   /**
@@ -255,20 +260,6 @@ protected:
    * @return Response
    */
   static Response getResponse();
-
-  /**
-   * @brief Experimental implementation of DBShot response that doesn't use interrupts. Not yet working.
-   *
-   * @return Response
-   */
-  static Response getResponseNoInterrupts();
-
-  /**
-   * @brief Abandoned implementation of receiving a BDShot response
-   *
-   * @return Response
-   */
-  static Response getResponseOld();
 
 public:
   // Exposed for development/debugging

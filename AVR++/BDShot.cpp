@@ -18,15 +18,6 @@
 
 // Yes, we're including the cpp
 #include "DShot.cpp"
-template <bool SkipBufferEmptyCheck = false>
-void AVR::DShot::Debug::WriteByte(Basic::u1 const byte) __attribute__((weak));
-
-template <bool SkipBufferEmptyCheck = false>
-void AVR::DShot::Debug::WriteByte(Basic::u1 const byte) {
-  if (!SkipBufferEmptyCheck)
-    while (~UCSR1A & (1 << UDRE1)) {}
-  UDR1 = byte;
-}
 
 constexpr auto BitOverflowFlag = OCF0A;
 
@@ -80,8 +71,6 @@ void AVR::DShot::BDShot<Port, Pin, Speed>::init() {
 #endif
   }
 
-  // We use assembly comments to mark important points in the generated assembly to aid in analyzing the generated
-  // assembly
   asm("; Init BDShot");
 
   // TODO: Make timer configurable?
@@ -99,125 +88,6 @@ void AVR::DShot::BDShot<Port, Pin, Speed>::init() {
 // Make sure these functions are always optimized
 #pragma GCC optimize "O3"
 
-constexpr unsigned responseTimeoutTicks = (((long long)(F_CPU)) * AVR::DShot::BDShotConfig::responseTimeout) / 1e6;
-static inline void shiftInCarryLeft(Basic::u1 &byte) { asm("rol %0" : "+r"(byte)); }
-static inline void shiftInCarryLeft(Basic::u2 &word) {
-  asm("rol %A0\n\t"
-      "rol %B0"
-      : "+r"(word));
-}
-static inline void shiftInCarryLeft(Basic::u3 &word) {
-  asm("rol %A0\n\t"
-      "rol %B0\n\t"
-      "rol %C0"
-      : "+r"(word));
-}
-
-static inline void setCarry(bool value) {
-  if (value)
-    asm("sec \t;Set Carry Flag");
-  else
-    asm("clc \t;Clear Carry Flag");
-}
-
-namespace MakeResponse {
-
-/**
- * @return false if correct
- */
-inline static constexpr bool checkResponseChecksum(Basic::u1 n3, Basic::u1 n2, Basic::u1 n1, Basic::u1 n0) {
-  return 0xf ^ n0 ^ n1 ^ n2 ^ n3;
-}
-
-inline static constexpr AVR::DShot::Response fromGcrNibbles(Basic::u1 n3, Basic::u1 n2, Basic::u1 n1, Basic::u1 n0) {
-  using AVR::DShot::Response;
-
-  if ((n3 = GCR::decode(n3)) == 0xff) return Response::Error::BadDecodeFirstNibble;
-  if ((n2 = GCR::decode(n2)) == 0xff) return Response::Error::BadDecodeSecondNibble;
-  if ((n1 = GCR::decode(n1)) == 0xff) return Response::Error::BadDecodeThirdNibble;
-  if ((n0 = GCR::decode(n0)) == 0xff) return Response::Error::BadDecodeFourthNibble;
-
-  // asm("; done decoding");
-
-  if (checkResponseChecksum(n3, n2, n1, n0)) return Response::Error::BadChecksum;
-
-  // asm("; done checksum");
-
-  // We've checked the checksum, so we can safely ignore the checksum nibble
-  return {n3, n2, n1};
-}
-
-inline static constexpr AVR::DShot::Response fromDecodedNibbles(Basic::u1 n3, Basic::u1 n2, Basic::u1 n1,
-                                                                Basic::u1 n0) {
-  using AVR::DShot::Response;
-
-  if (n3 == 0xff) return Response::Error::BadDecodeFirstNibble;
-  if (n2 == 0xff) return Response::Error::BadDecodeSecondNibble;
-  if (n1 == 0xff) return Response::Error::BadDecodeThirdNibble;
-  if (n0 == 0xff) return Response::Error::BadDecodeFourthNibble;
-
-  // asm("; done decoding");
-
-  if (checkResponseChecksum(n3, n2, n1, n0)) return Response::Error::BadChecksum;
-
-  // asm("; done checksum");
-
-  // We've checked the checksum, so we can safely ignore the checksum nibble
-  return {n3, n2, n1};
-}
-
-inline static AVR::DShot::Response fromRawWord(Basic::u3 raw) {
-  using namespace AVR::DShot;
-  if (Debug::EmitEncodedNibblesToUART) {
-    _delay_us(10);
-    Debug::WriteByte<false>(raw >> 16);
-    Debug::WriteByte<false>(raw >> 8);
-    Debug::WriteByte(raw);
-  }
-
-  asm("; undo shifting");
-
-  // Undo the "shift-encoding"
-  raw ^= raw >> 1;
-
-  asm("; done shifting");
-
-  if (Debug::EmitEncodedNibblesToUART) {
-    _delay_us(10);
-    Debug::WriteByte<false>(raw >> 16);
-    Debug::WriteByte<false>(raw >> 8);
-    Debug::WriteByte(raw);
-  }
-
-  asm("; decoding nibbles");
-
-  u1 n3 = raw >> (GCR::inBits * 3) & GCR::inMask;
-  u1 n2 = raw >> (GCR::inBits * 2) & GCR::inMask;
-  u1 n1 = raw >> (GCR::inBits * 1) & GCR::inMask;
-  u1 n0 = raw >> (GCR::inBits * 0) & GCR::inMask;
-
-  asm("; done decoding nibbles");
-
-  if (Debug::EmitEncodedNibblesToUART) {
-    _delay_us(10);
-    Debug::WriteByte<false>(n3);
-    Debug::WriteByte<false>(n2);
-    Debug::WriteByte(n1);
-    Debug::WriteByte(n0);
-  }
-
-  return fromGcrNibbles(n3, n2, n1, n0);
-}
-
-inline static AVR::DShot::Response fromRawBytes(Basic::u1 raw2, Basic::u1 raw1, Basic::u1 raw0) {
-  // Collect bytes in the correct order for shifting
-  return fromRawWord(u3(raw2) << 16 | u2(raw1) << 8 | raw0);
-}
-
-static AVR::DShot::Response fromResult();
-
-} // namespace MakeResponse
-
 // Pick 3 "call-used" or "call-clobbered" general purpose registers.
 // Order/adjacency does not matter.
 // We'll use these to store the response as we read it.
@@ -225,43 +95,6 @@ static AVR::DShot::Response fromResult();
 #define Result0Reg "r18"
 #define Result1Reg "r19"
 #define Result2Reg "r20"
-
-inline Basic::u3 getResult() {
-  Basic::u3 result;
-  asm("mov %A0, " Result0Reg "\t; Get result byte 0\n\t"
-      "mov %B0, " Result1Reg "\t; Get result byte 1\n\t"
-      "mov %C0, " Result2Reg "\t; Get result byte 2"
-      : "=r"(result));
-  return result;
-}
-
-template <Basic::u1 v>
-inline void initResult() {
-  asm("ldi " Result0Reg ", %[byte0]\t; Set result byte 0\n\t"
-      "ldi " Result1Reg ", %[byte1]\t; Set result byte 1\n\t"
-      "ldi " Result2Reg ", %[byte2]\t; Set result byte 2"
-      :
-      : [byte0] "I"(1 << v), [byte1] "I"((1 << v) >> 8), [byte2] "I"((1 << v) >> 16));
-}
-
-inline Basic::u3 getResultUnShifted() {
-  Basic::u3 result;
-  asm("mov %C[result],\t" Result2Reg "\t; Get result byte 2\n\t"
-      "lsr   \t" Result2Reg "\n\t"
-      "eor %C[result],\t" Result2Reg "\n\t"
-
-      "mov %B[result],\t" Result1Reg "\t; Get result byte 1\n\t"
-      "ror   \t" Result1Reg "\n\t"
-      "eor %B[result],\t" Result1Reg "\n\t"
-
-      "mov %A[result],\t" Result0Reg "\t; Get result byte 0\n\t"
-      "ror   \t" Result0Reg "\n\t"
-      "eor %A[result],\t" Result0Reg
-      : [result] "=r"(result)
-      :
-      : Result0Reg Result1Reg Result2Reg);
-  return result;
-}
 
 constexpr bool const_string_equal(char const *a, char const *b) {
   while (*a || *b)
@@ -308,24 +141,20 @@ register Basic::u1 result0 asm(Result0Reg);
 register Basic::u1 result1 asm(Result1Reg);
 register Basic::u1 result2 asm(Result2Reg);
 
-enum class ResultProcedure {
-  RawBytes,
-  FromWord,
-  FromGcrNibbles,
-};
+namespace MakeResponse {
 
-constexpr ResultProcedure resultProcedure = ResultProcedure::FromGcrNibbles;
+/**
+ * @return false if correct
+ */
+inline static constexpr bool isBadChecksum(Basic::u1 n3, Basic::u1 n2, Basic::u1 n1, Basic::u1 n0) {
+  return 0xf ^ n0 ^ n1 ^ n2 ^ n3;
+}
 
 Basic::u1 decodeNibble(Basic::u1 b) { return GCR::decode(b & 0x1f); }
 
-AVR::DShot::Response MakeResponse::fromResult() {
+static AVR::DShot::Response fromResult() {
   asm("; fromResult");
 
-  if (resultProcedure == ResultProcedure::RawBytes) {
-    return fromRawBytes(result2, result1, result0);
-  } else if (resultProcedure == ResultProcedure::FromWord) {
-    return fromRawWord(getResult());
-  } else if (resultProcedure == ResultProcedure::FromGcrNibbles) {
     Basic::u1 n0, n1, n2, n3;
 
     asm(
@@ -386,9 +215,19 @@ AVR::DShot::Response MakeResponse::fromResult() {
         : [decodeNibble] "p"(&decodeNibble)
         : "r24", Result0Reg, Result1Reg, Result2Reg);
 
-    return fromDecodedNibbles(n3, n2, n1, n0);
-  }
+  using AVR::DShot::Response;
+
+  if (n3 == 0xff) return Response::Error::BadDecodeFirstNibble;
+  if (n2 == 0xff) return Response::Error::BadDecodeSecondNibble;
+  if (n1 == 0xff) return Response::Error::BadDecodeThirdNibble;
+  if (n0 == 0xff) return Response::Error::BadDecodeFourthNibble;
+
+  if (isBadChecksum(n3, n2, n1, n0)) return Response::Error::BadChecksum;
+
+  // We've checked the checksum, so we can safely ignore the checksum nibble
+  return {n3, n2, n1};
 }
+} // namespace MakeResponse
 
 // We need to mark this as Naked for maximum performance because the generated entry/exit sequences are unnecessary in
 // our known execution path.
@@ -517,10 +356,12 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
    * Spin period = (base << exponent) microseconds
    */
   // clang-format on
-  constexpr bool useDebounce = true;
 
+  // These are probably defunct
   static_assert(Periods::delayPeriodTicks == 43, "delayPeriodTicks is not what we expect!");
   static_assert(Periods::delayHalfPeriodTicks == 21, "delayHalfPeriodTicks is not what we expect!");
+
+  constexpr unsigned responseTimeoutTicks = (((long long)(F_CPU)) * AVR::DShot::BDShotConfig::responseTimeout) / 1e6;
 
   // We're overflowing with OCRA now which sets lower TOP than 0xff
   constexpr unsigned responseTimeoutOverflows = responseTimeoutTicks / Periods::delayPeriodTicks + 1;
@@ -557,10 +398,10 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
    * @note Maximum accuracy we can achieve of timing on initial transition
    * @note These lists are generated from looking at the generated assembly for these functions.
    */
-  constexpr unsigned ticksInitialSpinLoopNormal = 1                                           // Check Pin
-                                                  + ResetWatchdog::WaitingFirstTransitionFast // WDR
-                                                  + AVR::Core::Ticks::Instruction::RJmp       // Loop
-                                                  + AVR::Core::Ticks::Instruction::Skip1Word  // Didn't overflow
+  constexpr unsigned ticksInitialSpinLoop = 1                                           // Check Pin
+                                            + ResetWatchdog::WaitingFirstTransitionFast // WDR
+                                            + AVR::Core::Ticks::Instruction::RJmp       // Loop
+                                            + AVR::Core::Ticks::Instruction::Skip1Word  // Didn't overflow
       ;
 
   /**
@@ -590,35 +431,21 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
    */
   constexpr unsigned ticksFromTransitionToInitialTimerSync =
       AVR::Core::Ticks::Instruction::Skip1Word      // We test with a `sbic` instruction
-      + 2 * useDebounce                             // Debounce compensation
+      + 2 * BDShotConfig::useDebounce               // Debounce compensation
       + ResetWatchdog::ReceivedFirstTransition      // WDR
       + AVR::Core::Ticks::Instruction::LoaDImediate // Set register to immediate
       + AVR::Core::Ticks::Instruction::Out          // Set timer counter from register
       ;
 
   /**
-   * Number of ticks it takes the main spin loop to check for a transition.
+   * Number of ticks it takes the ultra fast main spin loop to check for a transition
    *
    * @note Maximum accuracy we can achieve of timing on transition
    */
-  constexpr unsigned ticksSpinLoopNormal =
-      (Debug::EmitPulseAtSample || Debug::EmitPulseAtSync) // Pin toggle adds a clock cycle
-      + AVR::Core::Ticks::Instruction::Skip1Word           // Check input
-      + AVR::Core::Ticks::Instruction::Branch              // Loop
+  constexpr unsigned ticksSpinLoop = Debug::EmitPulsesAtIdle               // Pin toggle adds a clock cycle to the loop
+                                     + 1                                   // Reading the pin state takes 1 clock cycle
+                                     + AVR::Core::Ticks::Instruction::RJmp // Jump to start of loop
       ;
-
-  /**
-   * Number of ticks it takes the main spin loop to check for a transition in "ultra" mode
-   *
-   * @note Maximum accuracy we can achieve of timing on transition
-   */
-  constexpr unsigned ticksSpinLoopUltra =
-      Debug::EmitPulsesAtIdle               // Pin toggle adds a clock cycle to the loop sasassssaa
-      + 1                                   // Reading the pin state takes 1 clock cycle
-      + AVR::Core::Ticks::Instruction::RJmp // Jump to start of loop
-      ;
-
-  constexpr unsigned ticksSpinLoop = BDShotConfig::useUltraLoop ? ticksSpinLoopUltra : ticksSpinLoopNormal;
 
   /**
    * Number of ticks from a transition to when we can set the timer to some value.
@@ -626,26 +453,12 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
    *
    * @note Part of the phase adjustment of reading bits on timer overflow
    */
-  constexpr unsigned ticksFromTransitionToTimerSyncNormal =
-      1                                     // Initial read
-      + AVR::Core::Ticks::Instruction::RJmp // Jump to set timer
-      + AVR::Core::Ticks::Instruction::Out  // Set timer counter from register
-      ;
-  /**
-   * Number of ticks from a transition to when we can set the timer to some value.
-   * Receiving bits has a different code path that the initial transition.
-   *
-   * @note Part of the phase adjustment of reading bits on timer overflow
-   */
-  constexpr unsigned ticksFromTransitionToTimerSyncUltra =
+  constexpr unsigned ticksFromTransitionToTimerSync =
       1                                    // Initial read
-      + 2 * useDebounce                    // Debounce compensation
+      + 2 * BDShotConfig::useDebounce      // Debounce compensation
       + 1                                  // Skip over rjmp
       + AVR::Core::Ticks::Instruction::Out // Set timer counter from register
       ;
-
-  constexpr unsigned ticksFromTransitionToTimerSync =
-      BDShotConfig::useUltraLoop ? ticksFromTransitionToTimerSyncUltra : ticksFromTransitionToTimerSyncNormal;
 
   // Larger numbers will make the samples happen sooner
   constexpr int fudgeInitialTicks = 0;
@@ -655,7 +468,7 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
   // constexpr unsigned adjustInitialTicks = adjustSyncTicks + 10;
   constexpr unsigned adjustInitialTicks =
       // Half of the normal loop time
-      ticksInitialSpinLoopNormal / 2
+      ticksInitialSpinLoop / 2
       // Initial sync
       + ticksFromTransitionToInitialTimerSync
       // Compensate for ISR service time
@@ -683,7 +496,7 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
   asm("; Waiting for first transition");
 
   // Wait for initial high-to-low transition, or timeout while waiting
-  while (isHigh() || useDebounce && isHigh()) {
+  while (isHigh() || BDShotConfig::useDebounce && isHigh()) {
     if (ResetWatchdog::WaitingFirstTransitionFast) asm("wdr");
 
     // If timer overflows, see if we've overflowed enough to know we're not getting a response.
@@ -726,7 +539,7 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
   result2 = FinishedMarker >> (8 * 2);
 
   // Make sure Carry starts in expected state
-  setCarry(false);
+  asm("clc \t;Clear Carry Flag");
 
   asm("; DON'T MESS WITH REGISTERS: " Result0Reg " " Result1Reg " " Result2Reg " r30 r31 or Carry\n\t");
 
@@ -735,17 +548,13 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
 
   register u1 const syncValue = timerCounterValueSync;
 
-  constexpr bool useOneLoop = false;
-  constexpr bool useTwoLoop = true;
-  constexpr bool useInlineAssembly = true;
-
-  if (BDShotConfig::useUltraLoop) {
-    // The fastest implementation, but relies on extra weird code at the end of the ISR to save us
-    asm("; UltraLoop Start");
+    // The ultra fast loop implementation
+    // Relies on extra weird code at the end of the ISR to save us
+    asm("; Ultra Fast Loop Start");
     while (true) {
       do {
         if (Debug::EmitPulsesAtIdle) Debug::Pin::tgl();
-      } while (!isHigh() || useDebounce && !isHigh());
+      } while (!isHigh() || BDShotConfig::useDebounce && !isHigh());
       TCNT0 = syncValue;
       if (Debug::EmitPulseAtSync) {
         Debug::Pin::on();
@@ -753,719 +562,21 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
       }
       do {
         if (Debug::EmitPulsesAtIdle) Debug::Pin::tgl();
-      } while (isHigh() || useDebounce && isHigh());
+      } while (isHigh() || BDShotConfig::useDebounce && isHigh());
       TCNT0 = syncValue;
       if (Debug::EmitPulseAtSync) {
         Debug::Pin::on();
         Debug::Pin::off();
       }
     }
+
     // GCC doesn't think code execution can reach here, which is fine.
     // The ISR messes with the call stack and will "return" for us.
     asm volatile("; UltraLoop End");
-  } else if (useOneLoop) {
-    // The DRY implementation that reuses the same loop. Compiles into something fat
-    bool curr = false;
-
-    while (true) {
-      do {
-        asm goto("brcs %l[DoneReadingBits]; branch to DoneReadingBits" :: ::DoneReadingBits);
-      } while (curr == isHigh());
-      TCNT0 = syncValue;
-      curr = !curr;
-    }
-  } else if (useTwoLoop) {
-    // A compact loop that exits on its own.
-    while (true) {
-      do {
-        asm goto("brcs %l[DoneReadingBits]; branch to DoneReadingBits" :: ::DoneReadingBits);
-      } while (!isHigh());
-      TCNT0 = syncValue;
-      do {
-        asm goto("brcs %l[DoneReadingBits]; branch to DoneReadingBits" :: ::DoneReadingBits);
-      } while (isHigh());
-      TCNT0 = syncValue;
-    }
-
-  } else if (useInlineAssembly) {
-    // A compact version of the "TwoLoop" implementation above
-    asm goto(
-        // clang-format off
-      "ldi r24, %[syncValue] ; Put timerCounterValueSync into a register for use\n"
-
-      "KeepReadingBitsLow:\n"
-      "  brcs %l[DoneReadingBits] ; Branch to DoneReadingBits when Carry set\n"
-      "  sbis %[PIN], %[N] ; Skip if pin is set\n"
-      "  rjmp KeepReadingBitsLow\n"
-
-      "PinNowHigh:\n"
-      "  out %[TCNT],r24 ; Update timer\n"
-
-      "KeepReadingBitsHigh:\n"
-      "  brcs %l[DoneReadingBits] ; Branch to DoneReadingBits when Carry set\n"
-      "  sbic %[PIN], %[N] ; Skip if pin is clear\n"
-      "  rjmp KeepReadingBitsHigh\n"
-
-      "PinNowLow:\n"
-      "  out %[TCNT],r24 ; Update timer\n"
-      "  rjmp KeepReadingBitsLow\n"
-      :
-      : [syncValue]"I" (timerCounterValueSync),
-        [PIN] "I"(unsigned(Port) // Convert Port to integer
-                  - __SFR_OFFSET // Offset because of AVR internal workings
-                  - 2            // Distance from PINx to PORTx
-                  ),
-        [N] "I"(Pin), // The pin number
-        [TCNT] "I"(_SFR_IO_ADDR(TCNT0)) // The timer counter register
-      : "r24"
-      : DoneReadingBits
-        // clang-format on
-    );
-
-  } else {
-    // The original implementation, unoptimized, but works.
-
-    // We can't use normal loop structures because we need to use the `asm goto("brcc ...")` statement to test for the
-    // end condition: 20-bits received. We use two separate loops to optimize the pin state checks in exchange for a
-    // small amount of program space.
-
-    // Main loop while line is low
-  KeepReadingBitsLow:
-    // Turn off Debug IO every loop checking pin state
-    if (Debug::EmitPulseAtSample || Debug::EmitPulseAtSync) Debug::Pin::clr();
-    // Wait for input to go high
-    if (isHigh()) {
-      TCNT0 = syncValue;
-      // Debug:: IO pulse after seeing a state change
-      if (Debug::EmitPulseAtSync) Debug::Pin::on();
-
-      if (ResetWatchdog::ReceivedTransition) asm("wdr");
-
-      // Jump to other pin loop
-      goto KeepReadingBitsHigh;
-    }
-    // Toggle Debug IO state when idle
-    if (Debug::EmitPulsesAtIdle) Debug::Pin::tgl();
-    // We use the carry bit that was set in the interrupt to determine if we've received 20 bits.
-    asm goto("brcc %l[KeepReadingBitsLow]; branch to KeepReadingBitsLow" :: ::KeepReadingBitsLow);
-
-    // If we get here, we've received 20 bits
-    goto DoneReadingBits;
-
-  KeepReadingBitsHigh:
-    // Turn off Debug IO every loop checking pin state
-    if (Debug::EmitPulseAtSample || Debug::EmitPulseAtSync) Debug::Pin::clr();
-    // Wait for input to go low
-    if (!isHigh()) {
-      TCNT0 = syncValue;
-      // Debug:: IO pulse after seeing a state change
-      if (Debug::EmitPulseAtSync) Debug::Pin::on();
-
-      if (ResetWatchdog::ReceivedTransition) asm("wdr");
-
-      // Jump to other pin loop
-      goto KeepReadingBitsLow;
-    }
-    // Toggle Debug IO state when idle
-    if (Debug::EmitPulsesAtIdle) Debug::Pin::tgl();
-    // We use the carry bit that was set in the interrupt to determine if we've received 20 bits.
-    asm goto("brcc %l[KeepReadingBitsHigh]; branch to KeepReadingBitsHigh" :: ::KeepReadingBitsHigh);
-  }
-
-DoneReadingBits:
-  // It's important to tell GCC that we've modified these registers elsewhere
-  asm("; Done reading bits!" ::: Result0Reg, Result1Reg, Result2Reg);
-
-  // Disable interrupt
-  TIMSK0 = 0;
-
-  if (ResetWatchdog::BeforeProcessing) asm("wdr");
-
-  if (Debug::EmitRawResultToUART) {
-    Debug::WriteByte<false>(result2);
-    Debug::WriteByte<false>(result1);
-    Debug::WriteByte(result0);
-  }
-
-  asm("; DONE WITH REGISTERS: " Result0Reg " " Result1Reg " " Result2Reg " r30 r31 and Carry");
-
-  // Result is in registers, but we still need to unshift and decode the GCR encoding
-  // Bit number:     1   5 6  9  12 14 17 21
-  // On the wire:    xxxxx|xxxxxxxx|xxxxxxxx
-  // Results:     result 2|result 1|result 0
-
-  return MakeResponse::fromResult();
 }
-
-static AVR::DShot::Response parseResultUltra() {
-  TIMSK0 = 0;
-  asm("pop r30");
-  asm("pop r30");
-  return MakeResponse::fromResult();
-}
-
-#ifdef BUILD_WIP_STUFF
-template <AVR::Ports Port, int Pin, AVR::DShot::Speeds Speed>
-AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponseNoInterrupts() {
-  using AVR::DShot::Response;
-  using Basic::u1;
-  using Basic::u3;
-
-  u1 overflowsWhileWaiting = 0; // for first bit of response
-
-  // Experimental interrupt-less resync. Not working yet
-
-  static_assert(Periods::delayPeriodTicks > 41, "delayPeriodTicks is too small for this implementation");
-
-  // We're overflowing with OCRA now which sets lower TOP than 0xff
-  constexpr unsigned responseTimeoutOverflows = responseTimeoutTicks / Periods::delayPeriodTicks;
-
-  static_assert(responseTimeoutOverflows < 0xff, "responseTimeoutOverflows is too large for this implementation");
-
-  u1 temp[ExpectedBits];
-  // Use a set bit in result to indicate we've gotten all the bits
-  u3 result = 1 << ((sizeof(result) * 8) - ExpectedBits);
-
-  static_assert(ExpectedBits <= sizeof(result) * 8, "ExpectedBits is too large for this implementation");
-
-  // Assumptions of this implementation
-  static_assert(Periods::delayPeriodTicks > 10, "delayPeriodTicks is too small");
-  static_assert(Periods::delayPeriodTicks < 100, "delayPeriodTicks is too large");
-  static_assert(Periods::delay3HalfPeriodTicks < 200, "delay3HalfPeriodTicks is too large");
-
-  /**
-   * We're receiving a NRZ(L) RLL "shift-encoded" bit stream; a start bit and 20 gcr.
-   *
-   * One way to receive this data would be to use a standard TTL level hardware serial port with the capability of
-   * receiving 20 bits.
-   *
-   * gcrEncodedData = receivedBits ^ (receivedBits >> 1)
-   *
-   * This, however, has issues with likely clock drift.
-   *
-   * Instead, we try to recover clocking information on any transition.
-   *
-   * Pseudo code:
-   * - Wait for initial high-to-low transition
-   *   - Timeout if no response in 50us
-   * - Start timer with overflow in 1.5 bit periods
-   * - Wait for
-   *   - Overflow
-   *     - Sample bit
-   *     - Loop if not 20 bits
-   *   - Transition
-   *     - Sync timer (set to 0.5 bit period, overflow in half a bit period)
-   *     - Loop
-   *
-   * This is relatively straightforward to implement...
-   */
-
-  // Wait for initial high-to-low transition, or timeout while waiting
-  while (true) {
-    if (!isHigh()) break;
-
-    if (!(TIFR0 & _BV(BitOverflowFlag))) continue;
-
-    // Timeout waiting for response
-    if (overflowsWhileWaiting++ > responseTimeoutOverflows) return Response::Error::ResponseTimeout;
-
-    TIFR0 |= _BV(BitOverflowFlag);
-  }
-
-  // We're receiving BDShot data! Continue...
-InitialLowEntry:
-  constexpr unsigned adjustInitialTicks = 6;
-  constexpr unsigned adjustSyncTicks = 6;
-  TCNT0 = -u1(Periods::delayHalfPeriodTicks - adjustInitialTicks); // Start below 0. Overflow in 1.5 bit periods
-  TIFR0 |= _BV(BitOverflowFlag);
-
-  asm("; Got High-to-Low transition");
-
-  constexpr bool SingleLoopVersion = false;
-  if (SingleLoopVersion) {
-    bool lastBit = false;
-    while (true) {
-      bool currentBit = isHigh();
-      if (currentBit != lastBit) TCNT0 = Periods::delayHalfPeriodTicks - adjustSyncTicks;
-      if (TIFR0 & _BV(BitOverflowFlag)) {
-        TIFR0 |= _BV(BitOverflowFlag);
-        Debug::Pin::tgl();
-        setCarry(lastBit ^ currentBit);
-        lastBit = currentBit;
-        shiftInCarryLeft(result);
-        // branch to end if carry set. Means we've gotten the bit out that we set at the start
-        asm goto("brcs %l[ParseGCR]; branch to ParseGCR" :: ::ParseGCR);
-      }
-    }
-  } else {
-
-  FirstLow:
-    asm("; FirstLow:");
-    while (true) {
-      if (TIFR0 & _BV(BitOverflowFlag)) {
-        TIFR0 |= _BV(BitOverflowFlag);
-
-        setCarry(1);
-        shiftInCarryLeft(result);
-        // branch to end if carry set. Means we've gotten the bit out that we set at the start
-        asm goto("brcc %l[FirstLow]; Loop to FirstLow if not done" :: ::FirstLow);
-        asm goto("rjmp %l[ParseGCR]" :: ::ParseGCR);
-      }
-      if (isHigh()) {
-        TCNT0 = Periods::delayHalfPeriodTicks - adjustSyncTicks;
-        Debug::Pin::tgl();
-        goto FirstHigh;
-      }
-    }
-
-  FirstHigh:
-    asm("; FirstHigh:");
-    while (true) {
-      if (TIFR0 & _BV(BitOverflowFlag)) {
-        TIFR0 |= _BV(BitOverflowFlag);
-
-        setCarry(1);
-        shiftInCarryLeft(result);
-        // branch to end if carry set. Means we've gotten the bit out that we set at the start
-        asm goto("brcc %l[FirstHigh]; Loop to FirstHigh if not done" :: ::FirstHigh);
-        asm goto("rjmp %l[ParseGCR]" :: ::ParseGCR);
-      }
-      if (!isHigh()) {
-        TCNT0 = Periods::delayHalfPeriodTicks - adjustSyncTicks;
-        Debug::Pin::tgl();
-        goto FirstLow;
-      }
-    }
-
-  SubsequentLow:
-    asm("; SubsequentLow:");
-    while (true) {
-      if (TIFR0 & _BV(BitOverflowFlag)) {
-        TIFR0 |= _BV(BitOverflowFlag);
-
-        setCarry(0);
-        shiftInCarryLeft(result);
-        // branch to end if carry set. Means we've gotten the bit out that we set at the start
-        asm goto("brcc %l[SubsequentLow]; LSubsequentLow to SubsequentLow if SubsequentLow done" :: ::SubsequentLow);
-        asm goto("rjmp %l[ParseGCR]" :: ::ParseGCR);
-      }
-      if (isHigh()) {
-        TCNT0 = Periods::delayHalfPeriodTicks - adjustSyncTicks;
-        Debug::Pin::tgl();
-        goto FirstHigh;
-      }
-    }
-
-  SubsequentHigh:
-    asm("; SubsequentHigh:");
-    while (true) {
-      if (TIFR0 & _BV(BitOverflowFlag)) {
-        TIFR0 |= _BV(BitOverflowFlag);
-
-        setCarry(0);
-        shiftInCarryLeft(result);
-        // branch to end if carry set. Means we've gotten the bit out that we set at the start
-        asm goto(
-            "brcc %l[SubsequentHigh]; LSubsequentHigh to SubsequentHigh if SubsequentHigh done" :: ::SubsequentHigh);
-        asm goto("rjmp %l[ParseGCR]" :: ::ParseGCR);
-      }
-      if (!isHigh()) {
-        TCNT0 = Periods::delayHalfPeriodTicks - adjustSyncTicks;
-        Debug::Pin::tgl();
-        goto FirstLow;
-      }
-    }
-
-  ParseGCR:
-    asm("; ParseGCR");
-  }
-  asm("; Got all the bits!");
-
-  u1 checksum = 0;
-
-  for (u1 i = 0; i < nibbles; i++) {
-    u1 nibble = 0;
-    for (u1 j = 0; j < GCR::inBits; j++) {
-      nibble <<= 1;
-      nibble |= temp[i * GCR::inBits + j];
-    }
-    nibble = GCR::decode(nibble);
-    if (nibble == 0xff) return Response::Error::BadDecodeFourthNibble;
-
-    // We can reuse temp at this point
-    temp[i] = nibble;
-    checksum ^= nibble;
-  }
-
-  if (checksum != 0) return Response::Error::BadChecksum;
-
-  return {u2((u2(temp[0] & 0b1) << 8) | temp[1] | temp[2]), u1(temp[0] >> 1)};
-}
-#endif
-
-#ifdef BUILD_OLD_CRAP
-
-static inline void delayNanos(unsigned) __attribute__((error("Not implemented")));
-void delayNanos(unsigned) { asm("; delayNanos"); }
-
-template <AVR::Ports Port, int Pin, AVR::DShot::Speeds Speed>
-AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponseOld() {
-  using AVR::DShot::Response;
-  using Basic::s1;
-  using Basic::u1;
-  using Basic::u2;
-
-  u1 overflowsWhileWaiting = 0; // for first bit of response
-  bool lastBit = false;
-
-  // 256 overflow with TOVF
-  constexpr unsigned responseTimeoutOverflows = responseTimeoutTicks >> 8;
-  static_assert(responseTimeoutOverflows < 0xff, "responseTimeoutOverflows is too large for this implementation");
-
-  u1 checksum = 0;
-
-  if (Periods::delayPeriodTicks <= 50) {
-    /**
-     * For very short periods, we need to capture all the bits quickly and then process them at the end.
-     */
-
-    asm("; delayPeriodTicks <= 50");
-
-    u1 temp[ExpectedBits];
-
-    for (u1 i = 0; i < ExpectedBits; i++)
-      temp[i] = 0;
-
-    // Wait for high-to-low transition, or timeout while waiting
-    while (isHigh()) {
-      if (!(TIFR0 & _BV(TOV0))) continue;
-
-      if (overflowsWhileWaiting > responseTimeoutOverflows) {
-        // Timeout waiting for response
-        return Response::Error::ResponseTimeout;
-      }
-
-      overflowsWhileWaiting++;
-
-      TIFR0 |= _BV(TOV0);
-    }
-
-    // TCNT0 = -u1(Periods::delayHalfPeriodTicks);
-
-    // TCNT0 = -10;
-
-    constexpr bool trustGCC = false;
-    if (trustGCC) {
-// Give GCC a hand with this one...
-#pragma GCC unroll 10000
-      for (u1 i = 0; i < ExpectedBits; i++) {
-
-        // TIFR0 |= _BV(BitOverflowFlag);
-
-        // Delay 1 bit time
-        // while (!(TIFR0 & (1 << TOV0))) {
-        // }
-        // asm("; Delay 1 bit time");
-        // TCNT0 = u1(-u1(Periods::delayPeriodTicks));
-        // TIFR0 = 1 << TOV0;
-        asm("; Delay 1 bit time");
-        while ((s1(TCNT0) - (s1(u1(const_round(Periods::bitPeriodNanos * (1.5 + i) * F_CPU / 1e9))))) < 0) {}
-        // while (!(TIFR0 & _BV(BitOverflowFlag))) {} // 2
-        // TCNT0 = 0; // 1
-        // OCR0A += Periods::delayPeriodTicks; // 3
-
-        Debug::Pin::tgl();
-        // if (isHigh()) {
-        temp[i] = isHigh(); // 3
-        // }
-        Debug::Pin::tgl();
-      }
-    } else {
-      TCNT0 = 20;
-      while (s1(TCNT0 - (const_round(Periods::bitPeriodNanos * (1.5 + 0) * F_CPU / 1e9))) < 0) {}
-      Debug::Pin::tgl();
-      temp[0] = isHigh();
-      while (s1(TCNT0 - (const_round(Periods::bitPeriodNanos * (1.5 + 1) * F_CPU / 1e9))) < 0) {}
-      Debug::Pin::tgl();
-      temp[1] = isHigh();
-      while (s1(TCNT0 - (const_round(Periods::bitPeriodNanos * (1.5 + 2) * F_CPU / 1e9))) < 0) {}
-      Debug::Pin::tgl();
-      temp[2] = isHigh();
-      while (s1(TCNT0 - (const_round(Periods::bitPeriodNanos * (1.5 + 3) * F_CPU / 1e9))) < 0) {}
-      Debug::Pin::tgl();
-      temp[3] = isHigh();
-      while (s1(TCNT0 - (const_round(Periods::bitPeriodNanos * (1.5 + 4) * F_CPU / 1e9))) < 0) {}
-      Debug::Pin::tgl();
-      temp[4] = isHigh();
-      while (s1(TCNT0 - (const_round(Periods::bitPeriodNanos * (1.5 + 5) * F_CPU / 1e9))) < 0) {}
-      Debug::Pin::tgl();
-      temp[5] = isHigh();
-      while (s1(TCNT0 - (const_round(Periods::bitPeriodNanos * (1.5 + 6) * F_CPU / 1e9))) < 0) {}
-      Debug::Pin::tgl();
-      temp[6] = isHigh();
-      while (s1(TCNT0 - (const_round(Periods::bitPeriodNanos * (1.5 + 7) * F_CPU / 1e9))) < 0) {}
-      Debug::Pin::tgl();
-      temp[7] = isHigh();
-      while (s1(TCNT0 - (const_round(Periods::bitPeriodNanos * (1.5 + 8) * F_CPU / 1e9))) < 0) {}
-      Debug::Pin::tgl();
-      temp[8] = isHigh();
-      while (s1(TCNT0 - (const_round(Periods::bitPeriodNanos * (1.5 + 9) * F_CPU / 1e9))) < 0) {}
-      Debug::Pin::tgl();
-      temp[9] = isHigh();
-      while (s1(TCNT0 - (const_round(Periods::bitPeriodNanos * (1.5 + 10) * F_CPU / 1e9))) < 0) {}
-      Debug::Pin::tgl();
-      temp[10] = isHigh();
-      while (s1(TCNT0 - (const_round(Periods::bitPeriodNanos * (1.5 + 11) * F_CPU / 1e9))) < 0) {}
-      Debug::Pin::tgl();
-      temp[11] = isHigh();
-      while (s1(TCNT0 - (const_round(Periods::bitPeriodNanos * (1.5 + 12) * F_CPU / 1e9))) < 0) {}
-      Debug::Pin::tgl();
-      temp[12] = isHigh();
-      while (s1(TCNT0 - (const_round(Periods::bitPeriodNanos * (1.5 + 13) * F_CPU / 1e9))) < 0) {}
-      Debug::Pin::tgl();
-      temp[13] = isHigh();
-      while (s1(TCNT0 - (const_round(Periods::bitPeriodNanos * (1.5 + 14) * F_CPU / 1e9))) < 0) {}
-      Debug::Pin::tgl();
-      temp[14] = isHigh();
-      while (s1(TCNT0 - (const_round(Periods::bitPeriodNanos * (1.5 + 15) * F_CPU / 1e9))) < 0) {}
-      Debug::Pin::tgl();
-      temp[15] = isHigh();
-      while (s1(TCNT0 - (const_round(Periods::bitPeriodNanos * (1.5 + 16) * F_CPU / 1e9))) < 0) {}
-      Debug::Pin::tgl();
-      temp[16] = isHigh();
-      while (s1(TCNT0 - (const_round(Periods::bitPeriodNanos * (1.5 + 17) * F_CPU / 1e9))) < 0) {}
-      Debug::Pin::tgl();
-      temp[17] = isHigh();
-      while (s1(TCNT0 - (const_round(Periods::bitPeriodNanos * (1.5 + 18) * F_CPU / 1e9))) < 0) {}
-      Debug::Pin::tgl();
-      temp[18] = isHigh();
-      while (s1(TCNT0 - (const_round(Periods::bitPeriodNanos * (1.5 + 19) * F_CPU / 1e9))) < 0) {}
-      Debug::Pin::tgl();
-      temp[19] = isHigh();
-    }
-
-    asm("; Done reading in bits");
-
-    bool lastBit = false;
-    for (u1 i = 0; i < nibbles; i++) {
-      for (u1 j = 0; j < GCR::inBits; j++) {
-        Debug::Pin::on();
-        Debug::Pin::clr();
-        if (temp[i * GCR::inBits + j] == 1) {
-          // Step 1 of GCR decoding
-          if (!lastBit) {
-            // We can safely start overwriting temp with GCR nibbles
-            temp[i] |= 1 << j;
-            lastBit = true;
-          }
-        } else {
-          if (lastBit) {
-            temp[i] |= 1 << j;
-            lastBit = false;
-          }
-        }
-      }
-
-      asm("; Decoding GCR");
-
-      // Decode the nibbles in place
-      const auto decoded = GCR::decode(temp[i]);
-
-      asm("; Done decoding GCR");
-
-      // If we get an invalid GCR code, bail
-      if (decoded == 0xff) {
-
-        // DebugWriteByte(i);
-        // DebugWriteByte(temp[i]);
-
-        return Response::Error::BadDecodeFourthNibble;
-      }
-
-      asm("; Done checking nibble");
-
-      checksum ^= decoded;
-    }
-
-    asm("; Done parsing");
-
-    if (checksum != 0b1111) return Response::Error::BadChecksum;
-
-    asm("; Done Checksum");
-
-    // swap nibbles in temp[1]. Slightly more efficient than shifting and masking
-    temp[1] = (temp[1] & 0b00001111) << 4 | (temp[1] & 0b11110000) >> 4;
-
-    return {u2((u2(temp[0] & 0b1) << 8) | temp[1] | temp[2]), u1(temp[0] >> 1)};
-
-  } else if (Periods::delayPeriodTicks <= 100) {
-    /**
-     * For slightly longer periods, we can demodulate the raw bit stream and just save gcr encoded nibbles for
-     * processing later
-     */
-
-    asm("; delayPeriodTicks <= 100");
-
-    // Wait for first high-to-low transition
-    while (isHigh()) {
-      if (!(TIFR0 & _BV(TOV0))) continue;
-
-      if (overflowsWhileWaiting > responseTimeoutOverflows) {
-        // Timeout waiting for response
-        return Response::Error::ResponseTimeout;
-      }
-
-      overflowsWhileWaiting++;
-      TIFR0 |= _BV(TOV0);
-    }
-
-    TCNT0 = 0;
-
-    TCNT0 = -(u1(Periods::delayPeriodTicks * 2));
-    TIFR0 = 1 << TOV0;
-
-    u1 temp[nibbles];
-
-    // Get all 4 nibbles of GCR encoded data
-    for (u1 i = 0; i < nibbles; i++) {
-      u1 j = GCR::inBits;
-      while (j--) {
-        // Delay 1 bit time
-        while (!(TIFR0 & (1 << TOV0))) {}
-        asm("; Delay 1 bit time");
-        TCNT0 = -(u1(Periods::delayPeriodTicks));
-        TIFR0 = 1 << TOV0;
-
-        // Sample pin
-        if (isHigh()) {
-          // Step 1 of GCR decoding
-          if (!lastBit) {
-            temp[i] |= 1 << j;
-            lastBit = true;
-          }
-        } else {
-          if (lastBit) {
-            temp[i] |= 1 << j;
-            lastBit = false;
-          }
-        }
-      }
-    }
-
-    asm("; Done parsing in bits");
-
-    // Decode each GCR encoded nibble
-    for (u1 i = 0; i < nibbles; i++) {
-      temp[i] = GCR::decode(temp[i]);
-
-      // If we get an invalid GCR code, bail
-      if (temp[i] == 0xff) return Response::Error::BadDecodeFourthNibble;
-    }
-
-    asm("; Computing Checksum");
-
-    // Compute Checksum. Maybe this should be done in the loop above?
-    for (u1 i = 0; i < nibbles; i++) {
-      // Compute checksum
-      checksum ^= temp[i];
-    }
-
-    // Test Checksum
-    if (checksum != 0b1111) return Response::Error::BadChecksum;
-
-    asm("; Result!");
-
-    // Return the result
-    return {u2((u2(temp[0] & 0b1) << 8) | u1(temp[1] << 4) | temp[2]), u1(temp[0] >> 1)};
-  } else {
-    /**
-     * For longest periods, we can capture the raw bit stream and then process it all at once
-     */
-    asm("; delayPeriodTicks > 100");
-
-    // Do it all in one loop
-
-    u1 overflowsWhileWaiting = 0; // for first bit of response
-
-    // 256 overflow with TOVF
-    constexpr unsigned responseTimeoutOverflows = responseTimeoutTicks >> 8;
-    static_assert(responseTimeoutOverflows < 0xff, "responseTimeoutOverflows is too large for this implementation");
-
-    u1 temp;
-    u1 exponent;
-    u2 base;
-
-    // Wait for high-to-low transition
-    while (isHigh()) {
-      if (!(TIFR0 & _BV(TOV0))) continue;
-
-      if (overflowsWhileWaiting > responseTimeoutOverflows) {
-        // Timeout waiting for response
-        return Response::Error::ResponseTimeout;
-      }
-
-      overflowsWhileWaiting++;
-      TIFR0 |= _BV(TOV0);
-    }
-
-    // Delay 0.5 bit time
-    delayNanos(Periods::bitPeriodNanos / 2);
-
-    // For each nibble
-    for (u1 i = 0; i < nibbles; i++) {
-      // Demodulate the bit stream
-      for (u1 j = GCR::inBits; j; j--) {
-        temp <<= 1;
-
-        // Delay 1 bit time
-        delayNanos(Periods::bitPeriodNanos);
-
-        // Sample pin
-        const bool bit = isHigh();
-
-        // Step 1 of GCR decoding
-        temp |= bit ^ lastBit;
-
-        lastBit = bit;
-      }
-
-      // Decode the nibble
-      const auto nibble = GCR::decode(temp & 0b11111);
-
-      // If we get an invalid GCR code, bail
-      if (nibble == 0xff) return Response::Error::BadDecodeFourthNibble;
-
-      // Compute checksum
-      checksum ^= nibble;
-
-      // Build up result as we're running
-      if (i == 0) {
-        exponent = nibble >> 1;
-        base = u2(nibble & 0b1) << 8;
-      } else if (i == 1) {
-        base |= nibble << 4;
-      } else if (i == 2) {
-        base |= nibble;
-      } else {
-        if (checksum != 0b1111) {
-          // Check checksum on last nibble
-          return Response::Error::BadChecksum;
-        }
-        // Otherwise we're all set!
-        return {base, exponent};
-      }
-    }
-  }
-}
-
-#endif // BUILD_OLD_CRAP
 
 template <AVR::Ports Port, int Pin, AVR::DShot::Speeds Speed>
 void AVR::DShot::BDShot<Port, Pin, Speed>::ReadBitISR() {
-
-  // Too bad this compiles to a lot of instructions
-  // setCarry(Parent::isHigh());
-
   /**
    * High level goal:
    *  - Read pin
@@ -1483,7 +594,7 @@ void AVR::DShot::BDShot<Port, Pin, Speed>::ReadBitISR() {
    *  - `rol ` Move Carry into result word, first byte
    *  - `rol ` Rotate result word, middle byte
    *  - `rol ` Rotate Carry out of result word, last byte
-   *  - `reti` Return from interrupt (unless we're using the "ultra" loop)
+   *  - `reti` Return from interrupt (unless we're done)
    */
 
   // Carry is always zero at this point
@@ -1509,10 +620,6 @@ void AVR::DShot::BDShot<Port, Pin, Speed>::ReadBitISR() {
       "rol " Result2Reg "\n\t"
       "; And get Carry from Result. If set, it indicates we're done.");
 
-  if (BDShotConfig::useUltraLoop) {
-    if (false) {
-      asm("brcs %x[branch]; Branch to parseResultUltra if Carry set" : : [branch] "p"(&parseResultUltra));
-    } else {
       // Reti if Carry is clear to continue receiving bits
       asm goto("brcc %l[DoneSamplingPin]; Branch to reti if Carry cleared" : : : : DoneSamplingPin);
 
@@ -1534,25 +641,18 @@ void AVR::DShot::BDShot<Port, Pin, Speed>::ReadBitISR() {
        * to a function that parses Result into a Response and returns it as we need.
        */
 
-      // Pop the interrupt return location off the stack (to get out of the ultra loop)
+      // Pop the interrupt return location off the stack (to get out of the ultra fast main loop)
       // We can also trash the previously set Z register value since we don't need it.
       asm("pop r30");
       asm("pop r30");
 
-      // Not needed.
-      // Saves a word of flash and a clock cycle, but this is at the end when speed doesn't matter as much.
-      // Relative jumps are faster but can't reach whole program space.
-      constexpr bool useRelativeJmp = true;
-
       // Jump to the function [MakeResponse::fromResult()] that makes the result the getResponse() caller wants.
       // When it returns, since we've mucked with the call stack, it'll return in place of getResponse().
-      if (useRelativeJmp) {
+      if (BDShotConfig::useRelativeJmpAtEndISR) {
         asm("rjmp %x[Done]; Jump to MakeResponse::fromResult" : : [Done] "p"(&MakeResponse::fromResult));
       } else {
         asm("jmp  %x[Done]; Jump to MakeResponse::fromResult" : : [Done] "p"(&MakeResponse::fromResult));
       }
-    }
-  }
 
 DoneSamplingPin:
   asm("reti");
@@ -1655,13 +755,6 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::sendCommand(Command<t
   // Return pin to input mode
   Parent::input();
 
-#ifdef BUILD_OLD_CRAP
-  return getResponseOld();
-#else
-#ifdef BUILD_WIP_STUFF
-  return getResponseNoInterrupts();
-#else
-
   const auto r = getResponse();
 
   if (HandleInterrupts) asm("sei");
@@ -1689,7 +782,4 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::sendCommand(Command<t
 #endif
 
   return r;
-
-#endif
-#endif
 }
