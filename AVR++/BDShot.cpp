@@ -180,6 +180,8 @@ static AVR::DShot::Response fromResult() {
 
   Basic::u1 n0, n1, n2, n3;
 
+  asm("; NOW WE GET TO USE OUR REGISTERS: " Result0Reg " " Result1Reg " " Result2Reg "\n\t");
+
   asm(
       // First we undo the shifting
 
@@ -648,7 +650,7 @@ void AVR::DShot::BDShot<Port, Pin, Speed>::ReadBitISR() {
   // Reti if Carry is clear to continue receiving bits
   asm goto("brcc %l[DoneSamplingPin]; Branch to reti if Carry cleared" : : : : DoneSamplingPin);
 
-  // All done!
+  asm("; DONE WITH REGISTERS: r30 r31 and Carry\n\t");
 
   // Jump to the function [MakeResponse::fromResult()] that makes the result the getResponse() caller wants.
   // When it returns, since we've mucked with the call stack, it'll return in place of getResponse().
