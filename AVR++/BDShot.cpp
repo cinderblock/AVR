@@ -659,9 +659,13 @@ DoneSamplingPin:
 }
 
 static constexpr bool HandleInterrupts = 0;
+static constexpr bool HandleInterruptsAlwaysOn = 0;
 
 template <AVR::Ports Port, int Pin, AVR::DShot::Speeds Speed>
 AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::sendCommand(Command<true> c) {
+
+  u1 savedSREG;
+
 #ifdef __AVR_ATmega32U4__
   u1 savedTIMSK4;
   u1 savedTIMSK3;
@@ -682,7 +686,6 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::sendCommand(Command<t
   u1 savedWDTCSR; // Just WDIE clear WDIF
 
   if (HandleInterrupts) {
-    // A warning for the future. This block needs to be implemented for automatic interrupt handling to work.
 
     savedTIMSK4 = TIMSK4;
     TIMSK4 = 0;
@@ -749,15 +752,28 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::sendCommand(Command<t
 
   // We can't let DShot implementation handle interrupts
   Parent::sendCommand(c, false);
-
   if (AVR::DShot::BDShotConfig::ResetWatchdog::AfterSend) asm("wdr");
 
   // Return pin to input mode
   Parent::input();
 
+  // getResponse() requires interrupts to be enabled globally
+  // but also requires all other interrupts to be disabled.
+  // It also always leaves interrupts disabled globally.
+
+  if (HandleInterrupts && !HandleInterruptsAlwaysOn) {
+    savedSREG = SREG;
+
+    asm("sei");
+  }
+
   const auto r = getResponse();
 
-  if (HandleInterrupts) asm("sei");
+  if (HandleInterrupts) {
+    SREG = savedSREG;
+  } else if (HandleInterruptsAlwaysOn) {
+    asm("sei");
+  }
 
 #ifdef __AVR_ATmega32U4__
   if (HandleInterrupts) {
