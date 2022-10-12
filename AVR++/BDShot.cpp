@@ -155,6 +155,29 @@ Basic::u1 decodeNibble(Basic::u1 b) { return GCR::decode(b & 0x1f); }
 static AVR::DShot::Response fromResult() {
   asm("; fromResult");
 
+  // All done!
+
+  // Disable interrupt
+  TIMSK0 = 0;
+
+  /**
+   * Here is where we need the "magic" to happen.
+   *
+   * In getResponse(), in our spin loop, waiting for transitions, GCC thinks that it will never get out of it.
+   * If we returned from this interrupt like normal, we'd go right back into that infinite loop.
+   * Fortunately getResponse() needs to return a Response.
+   * So if we can just get some other function to return that Response for us...
+   *
+   * First we remove the last return pointer from the stack, which currently is somewhere in the middle of that
+   * loop. Now, if we "return", we'll basically be returning from getResponse() instead. To seal the deal, we jump
+   * to a function that parses Result into a Response and returns it as we need.
+   */
+
+  // Pop the interrupt return location off the stack (to get out of the ultra fast main loop)
+  // We can also trash the previously set Z register value since we don't need it.
+  asm("pop r30");
+  asm("pop r30");
+
   Basic::u1 n0, n1, n2, n3;
 
   asm(
@@ -626,27 +649,6 @@ void AVR::DShot::BDShot<Port, Pin, Speed>::ReadBitISR() {
   asm goto("brcc %l[DoneSamplingPin]; Branch to reti if Carry cleared" : : : : DoneSamplingPin);
 
   // All done!
-
-  // Disable interrupt
-  TIMSK0 = 0;
-
-  /**
-   * Here is where we need the "magic" to happen.
-   *
-   * In getResponse(), in our spin loop, waiting for transitions, GCC thinks that it will never get out of it.
-   * If we returned from this interrupt like normal, we'd go right back into that infinite loop.
-   * Fortunately getResponse() needs to return a Response.
-   * So if we can just get some other function to return that Response for us...
-   *
-   * First we remove the last return pointer from the stack, which currently is somewhere in the middle of that
-   * loop. Now, if we "return", we'll basically be returning from getResponse() instead. To seal the deal, we jump
-   * to a function that parses Result into a Response and returns it as we need.
-   */
-
-  // Pop the interrupt return location off the stack (to get out of the ultra fast main loop)
-  // We can also trash the previously set Z register value since we don't need it.
-  asm("pop r30");
-  asm("pop r30");
 
   // Jump to the function [MakeResponse::fromResult()] that makes the result the getResponse() caller wants.
   // When it returns, since we've mucked with the call stack, it'll return in place of getResponse().
