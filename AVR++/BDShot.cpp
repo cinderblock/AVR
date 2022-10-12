@@ -155,65 +155,65 @@ Basic::u1 decodeNibble(Basic::u1 b) { return GCR::decode(b & 0x1f); }
 static AVR::DShot::Response fromResult() {
   asm("; fromResult");
 
-    Basic::u1 n0, n1, n2, n3;
+  Basic::u1 n0, n1, n2, n3;
 
-    asm(
-        // First we undo the shifting
+  asm(
+      // First we undo the shifting
 
-        // Use r24 instead of __temp_reg__ because we can
+      // Use r24 instead of __temp_reg__ because we can
 
-        "mov  " /*        */ "r24, " Result2Reg "\t; Copy byte 2\n\t"
-        "lsr  " /*        */ "r24\t; Shift the copy\n\t"
-        "eor  " Result2Reg ", r24\t; XOR the copy back\n\t"
+      "mov  " /*        */ "r24, " Result2Reg "\t; Copy byte 2\n\t"
+      "lsr  " /*        */ "r24\t; Shift the copy\n\t"
+      "eor  " Result2Reg ", r24\t; XOR the copy back\n\t"
 
-        "mov  " /*        */ "r24, " Result1Reg "\t; Copy byte 1\n\t"
-        "ror  " /*        */ "r24\t; Shift the copy\n\t"
-        "eor  " Result1Reg ", r24\t; XOR the copy back\n\t"
+      "mov  " /*        */ "r24, " Result1Reg "\t; Copy byte 1\n\t"
+      "ror  " /*        */ "r24\t; Shift the copy\n\t"
+      "eor  " Result1Reg ", r24\t; XOR the copy back\n\t"
 
-        "mov  " /*        */ "r24, " Result0Reg "\t; Copy byte 0\n\t"
-        "ror  " /*        */ "r24\t; Shift the copy\n\t"
-        "eor  " Result0Reg ", r24\t; XOR the copy back\n\t"
+      "mov  " /*        */ "r24, " Result0Reg "\t; Copy byte 0\n\t"
+      "ror  " /*        */ "r24\t; Shift the copy\n\t"
+      "eor  " Result0Reg ", r24\t; XOR the copy back\n\t"
 
-        // Now we turn 3 bytes into 4 quintets
+      // Now we turn 3 bytes into 4 quintets
 
-        // Layout:                 Result 2   Result 1   Result 0 Carry
-        "mov  r24, " Result0Reg "\t;   3333  3222 2211  1110 0000 x\n\t" // n0 is ready. Put it directly into r24.
+      // Layout:                 Result 2   Result 1   Result 0 Carry
+      "mov  r24, " Result0Reg "\t;   3333  3222 2211  1110 0000 x\n\t" // n0 is ready. Put it directly into r24.
 
-        "rol  " /**/ Result1Reg "\t;   3333  2222 211x  1110 0000 3\n\t"
-        "rol  " /**/ Result2Reg "\t; 3 3333  2222 211x  1110 0000 x\n\t" // n3 is ready in Result2Reg for later.
+      "rol  " /**/ Result1Reg "\t;   3333  2222 211x  1110 0000 3\n\t"
+      "rol  " /**/ Result2Reg "\t; 3 3333  2222 211x  1110 0000 x\n\t" // n3 is ready in Result2Reg for later.
 
-        "ror  " /**/ Result1Reg "\t; 3 3333  x222 2211  1110 0000 x\n\t"
-        "ror  " /**/ Result1Reg "\t; 3 3333  xx22 2221  1110 0000 1\n\t"
-        "ror  " /**/ Result0Reg "\t; 3 3333  xx22 2221  1111 0000 0\n\t"
-        "ror  " /**/ Result1Reg "\t; 3 3333  xxx2 2222  1111 0000 1\n\t" // n2 is ready in Result1Reg for later.
+      "ror  " /**/ Result1Reg "\t; 3 3333  x222 2211  1110 0000 x\n\t"
+      "ror  " /**/ Result1Reg "\t; 3 3333  xx22 2221  1110 0000 1\n\t"
+      "ror  " /**/ Result0Reg "\t; 3 3333  xx22 2221  1111 0000 0\n\t"
+      "ror  " /**/ Result1Reg "\t; 3 3333  xxx2 2222  1111 0000 1\n\t" // n2 is ready in Result1Reg for later.
 
-        "ror  " /**/ Result0Reg "\t; 3 3333  xxx2 2222  1111 1000 0\n\t"
-        "ror  " /**/ Result0Reg "\t; 3 3333  xxx2 2222  0111 1100 0\n\t"
-        "ror  " /**/ Result0Reg "\t; 3 3333  xxx2 2222  0011 1110 0\n\t"
-        "ror  " /**/ Result0Reg "\t; 3 3333  xxx2 2222  0001 1111 0\n\t" // n1 is ready in Result0Reg for later.
+      "ror  " /**/ Result0Reg "\t; 3 3333  xxx2 2222  1111 1000 0\n\t"
+      "ror  " /**/ Result0Reg "\t; 3 3333  xxx2 2222  0111 1100 0\n\t"
+      "ror  " /**/ Result0Reg "\t; 3 3333  xxx2 2222  0011 1110 0\n\t"
+      "ror  " /**/ Result0Reg "\t; 3 3333  xxx2 2222  0001 1111 0\n\t" // n1 is ready in Result0Reg for later.
 
-        // Decode the GCR encoded quintets into nibbles
+      // Decode the GCR encoded quintets into nibbles
 
-        "call %x[decodeNibble]\t; Decode nibbles\n\t"
-        "mov  %[n0], r24\n\t"
+      "call %x[decodeNibble]\t; Decode nibbles\n\t"
+      "mov  %[n0], r24\n\t"
 
-        "mov  r24, " Result0Reg "\n\t"
-        "call %x[decodeNibble]\t; Decode nibbles\n\t"
-        "mov  %[n1], r24\n\t"
+      "mov  r24, " Result0Reg "\n\t"
+      "call %x[decodeNibble]\t; Decode nibbles\n\t"
+      "mov  %[n1], r24\n\t"
 
-        "mov  r24, " Result1Reg "\n\t"
-        "call %x[decodeNibble]\t; Decode nibbles\n\t"
-        "mov  %[n2], r24\n\t"
+      "mov  r24, " Result1Reg "\n\t"
+      "call %x[decodeNibble]\t; Decode nibbles\n\t"
+      "mov  %[n2], r24\n\t"
 
-        "mov  r24, " Result2Reg "\n\t"
-        "call %x[decodeNibble]\t; Decode nibbles\n\t"
-        "mov  %[n3], r24\n\t"
+      "mov  r24, " Result2Reg "\n\t"
+      "call %x[decodeNibble]\t; Decode nibbles\n\t"
+      "mov  %[n3], r24\n\t"
 
-        // Let the compiler do the rest
+      // Let the compiler do the rest
 
-        : [n0] "=r"(n0), [n1] "=r"(n1), [n2] "=r"(n2), [n3] "=r"(n3)
-        : [decodeNibble] "p"(&decodeNibble)
-        : "r24", Result0Reg, Result1Reg, Result2Reg);
+      : [n0] "=r"(n0), [n1] "=r"(n1), [n2] "=r"(n2), [n3] "=r"(n3)
+      : [decodeNibble] "p"(&decodeNibble)
+      : "r24", Result0Reg, Result1Reg, Result2Reg);
 
   using AVR::DShot::Response;
 
@@ -548,31 +548,31 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
 
   register u1 const syncValue = timerCounterValueSync;
 
-    // The ultra fast loop implementation
-    // Relies on extra weird code at the end of the ISR to save us
-    asm("; Ultra Fast Loop Start");
-    while (true) {
-      do {
-        if (Debug::EmitPulsesAtIdle) Debug::Pin::tgl();
-      } while (!isHigh() || BDShotConfig::useDebounce && !isHigh());
-      TCNT0 = syncValue;
-      if (Debug::EmitPulseAtSync) {
-        Debug::Pin::on();
-        Debug::Pin::off();
-      }
-      do {
-        if (Debug::EmitPulsesAtIdle) Debug::Pin::tgl();
-      } while (isHigh() || BDShotConfig::useDebounce && isHigh());
-      TCNT0 = syncValue;
-      if (Debug::EmitPulseAtSync) {
-        Debug::Pin::on();
-        Debug::Pin::off();
-      }
+  // The ultra fast loop implementation
+  // Relies on extra weird code at the end of the ISR to save us
+  asm("; Ultra Fast Loop Start");
+  while (true) {
+    do {
+      if (Debug::EmitPulsesAtIdle) Debug::Pin::tgl();
+    } while (!isHigh() || BDShotConfig::useDebounce && !isHigh());
+    TCNT0 = syncValue;
+    if (Debug::EmitPulseAtSync) {
+      Debug::Pin::on();
+      Debug::Pin::off();
     }
+    do {
+      if (Debug::EmitPulsesAtIdle) Debug::Pin::tgl();
+    } while (isHigh() || BDShotConfig::useDebounce && isHigh());
+    TCNT0 = syncValue;
+    if (Debug::EmitPulseAtSync) {
+      Debug::Pin::on();
+      Debug::Pin::off();
+    }
+  }
 
-    // GCC doesn't think code execution can reach here, which is fine.
-    // The ISR messes with the call stack and will "return" for us.
-    asm volatile("; UltraLoop End");
+  // GCC doesn't think code execution can reach here, which is fine.
+  // The ISR messes with the call stack and will "return" for us.
+  asm volatile("; UltraLoop End");
 }
 
 template <AVR::Ports Port, int Pin, AVR::DShot::Speeds Speed>
@@ -620,39 +620,39 @@ void AVR::DShot::BDShot<Port, Pin, Speed>::ReadBitISR() {
       "rol " Result2Reg "\n\t"
       "; And get Carry from Result. If set, it indicates we're done.");
 
-      // Reti if Carry is clear to continue receiving bits
-      asm goto("brcc %l[DoneSamplingPin]; Branch to reti if Carry cleared" : : : : DoneSamplingPin);
+  // Reti if Carry is clear to continue receiving bits
+  asm goto("brcc %l[DoneSamplingPin]; Branch to reti if Carry cleared" : : : : DoneSamplingPin);
 
-      // All done!
+  // All done!
 
-      // Disable interrupt
-      TIMSK0 = 0;
+  // Disable interrupt
+  TIMSK0 = 0;
 
-      /**
-       * Here is where we need the "magic" to happen.
-       *
-       * In getResponse(), in our spin loop, waiting for transitions, GCC thinks that it will never get out of it.
-       * If we returned from this interrupt like normal, we'd go right back into that infinite loop.
-       * Fortunately getResponse() needs to return a Response.
-       * So if we can just get some other function to return that Response for us...
-       *
-       * First we remove the last return pointer from the stack, which currently is somewhere in the middle of that
-       * loop. Now, if we "return", we'll basically be returning from getResponse() instead. To seal the deal, we jump
-       * to a function that parses Result into a Response and returns it as we need.
-       */
+  /**
+   * Here is where we need the "magic" to happen.
+   *
+   * In getResponse(), in our spin loop, waiting for transitions, GCC thinks that it will never get out of it.
+   * If we returned from this interrupt like normal, we'd go right back into that infinite loop.
+   * Fortunately getResponse() needs to return a Response.
+   * So if we can just get some other function to return that Response for us...
+   *
+   * First we remove the last return pointer from the stack, which currently is somewhere in the middle of that
+   * loop. Now, if we "return", we'll basically be returning from getResponse() instead. To seal the deal, we jump
+   * to a function that parses Result into a Response and returns it as we need.
+   */
 
-      // Pop the interrupt return location off the stack (to get out of the ultra fast main loop)
-      // We can also trash the previously set Z register value since we don't need it.
-      asm("pop r30");
-      asm("pop r30");
+  // Pop the interrupt return location off the stack (to get out of the ultra fast main loop)
+  // We can also trash the previously set Z register value since we don't need it.
+  asm("pop r30");
+  asm("pop r30");
 
-      // Jump to the function [MakeResponse::fromResult()] that makes the result the getResponse() caller wants.
-      // When it returns, since we've mucked with the call stack, it'll return in place of getResponse().
-      if (BDShotConfig::useRelativeJmpAtEndISR) {
-        asm("rjmp %x[Done]; Jump to MakeResponse::fromResult" : : [Done] "p"(&MakeResponse::fromResult));
-      } else {
-        asm("jmp  %x[Done]; Jump to MakeResponse::fromResult" : : [Done] "p"(&MakeResponse::fromResult));
-      }
+  // Jump to the function [MakeResponse::fromResult()] that makes the result the getResponse() caller wants.
+  // When it returns, since we've mucked with the call stack, it'll return in place of getResponse().
+  if (BDShotConfig::useRelativeJmpAtEndISR) {
+    asm("rjmp %x[Done]; Jump to MakeResponse::fromResult" : : [Done] "p"(&MakeResponse::fromResult));
+  } else {
+    asm("jmp  %x[Done]; Jump to MakeResponse::fromResult" : : [Done] "p"(&MakeResponse::fromResult));
+  }
 
 DoneSamplingPin:
   asm("reti");
