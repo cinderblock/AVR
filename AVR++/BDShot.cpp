@@ -654,6 +654,11 @@ DoneSamplingPin:
   asm("reti");
 }
 
+// Don't pollute
+#undef Result0Reg
+#undef Result1Reg
+#undef Result2Reg
+
 // We need to mark this as Naked for maximum performance because the generated entry/exit sequences are unnecessary in
 // our known execution path.
 ISR(TIMER0_COMPA_vect, ISR_NAKED) {
