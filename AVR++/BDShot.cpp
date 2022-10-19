@@ -516,10 +516,9 @@ static AVR::DShot::Response fromResult() {
       "ror  " /**/ /**/ Result0Reg /**/ "\t; 3 3333  xx22 2221  1111 0000 0\n\t"
       "ror  " /**/ Result1Reg /**/ /**/ "\t; 3 3333  xxx2 2222  1111 0000 1\n\t" // n2 is ready in Result1Reg for later.
 
-      "ror  " /**/ /**/ Result0Reg /**/ "\t; 3 3333  xxx2 2222  1111 1000 0\n\t"
-      "ror  " /**/ /**/ Result0Reg /**/ "\t; 3 3333  xxx2 2222  0111 1100 0\n\t"
-      "ror  " /**/ /**/ Result0Reg /**/ "\t; 3 3333  xxx2 2222  0011 1110 0\n\t"
-      "ror  " /**/ /**/ Result0Reg /**/ "\t; 3 3333  xxx2 2222  0001 1111 0\n\t" // n1 is ready in Result0Reg for later.
+      "andi " /**/ /**/ Result0Reg ",0xf0\t; 3 3333  xxx2 2222  1111 xxxx 1\n\t" // Ensure lower nibble is 0
+      "adc  " /**/ /**/ Result0Reg ",r1  \t; 3 3333  xxx2 2222  1111 xxx1 x\n\t" // Add carry to lower nibble
+      "swap " /**/ /**/ Result0Reg /**/ "\t; 3 3333  xxx2 2222  xxx1 1111 x\n\t" // n1 is ready in Result0Reg for later.
 
       // Decode the GCR encoded quintets into nibbles
 
