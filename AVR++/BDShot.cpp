@@ -499,16 +499,16 @@ static AVR::DShot::Response fromResult() {
       // Use r24 instead of __temp_reg__ because we can
 
       "mov  " /*        */ "r24, " Result2Reg "\t; Copy byte 2\n\t"
-      "lsr  " /*        */ "r24\t; Shift the copy\n\t"
-      "eor  " Result2Reg ", r24\t; XOR the copy back\n\t"
+      "lsr  " /*        */ "r24" /*        */ "\t; Shift the copy\n\t"
+      "eor  " Result2Reg ", r24" /*        */ "\t; XOR the copy back\n\t"
 
       "mov  " /*        */ "r24, " Result1Reg "\t; Copy byte 1\n\t"
-      "ror  " /*        */ "r24\t; Shift the copy\n\t"
-      "eor  " Result1Reg ", r24\t; XOR the copy back\n\t"
+      "ror  " /*        */ "r24" /*        */ "\t; Shift the copy\n\t"
+      "eor  " Result1Reg ", r24" /*        */ "\t; XOR the copy back\n\t"
 
       "mov  " /*        */ "r24, " Result0Reg "\t; Copy byte 0\n\t"
-      "ror  " /*        */ "r24\t; Shift the copy\n\t"
-      "eor  " Result0Reg ", r24\t; XOR the copy back\n\t"
+      "ror  " /*        */ "r24" /*        */ "\t; Shift the copy\n\t"
+      "eor  " Result0Reg ", r24" /*        */ "\t; XOR the copy back\n\t"
 
       // Now we turn 3 bytes into 4 quintets
 
