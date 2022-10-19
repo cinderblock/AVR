@@ -628,6 +628,10 @@ void AVR::DShot::BDShot<Port, Pin, Speed>::ReadBitISR() {
   // Reti if Carry is clear to continue receiving bits
   asm goto("brcc %l[DoneSamplingPin]; Branch to reti if Carry cleared" : : : : DoneSamplingPin);
 
+  // We could invert the logic and use `brcs` instead, to get back to the main loop 1 cycle sooner.
+  // But in practice that doesn't matter as we always wait a loop cycles to see the transition.
+  // So instead we clean up 1 cycle faster when we're done!
+
   asm("; DONE WITH REGISTERS: r30 r31 and Carry");
 
   // Jump to the function [MakeResponse::fromResult()] that makes the result the getResponse() caller wants.
@@ -656,9 +660,9 @@ ISR(TIMER0_COMPA_vect, ISR_NAKED) {
   using AVR::DShot::BDShotConfig::Debug::Pin;
   if (EmitPulseAtSample) Pin::on();
 
-  // If we got *extra* fancy, we could save 3 clock cycles by putting this "ijmp" directly in the interrupt table
-  // Jump to Z register, set in getResponse() with setZ()
-  asm("ijmp ; Jump to Z register");
+  // If we got *extra* fancy, we could save 3 clock cycles (and a word of flash) by putting this "ijmp" directly in the
+  // interrupt table. But this doesn't improve our resolution in any way.
+  asm("ijmp ; Jump to Z register, set in getResponse() with setZ()");
 }
 
 static constexpr bool HandleInterrupts = 0;
