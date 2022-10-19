@@ -383,8 +383,8 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
 
   if (AVR::DShot::BDShotConfig::AssemblyOptimizations::saveZRegister) {
     // Save the contents of the call-saved result registers
-    asm("push r30\n\t"
-        "push r31\n\t");
+    asm("push r30");
+    asm("push r31");
   }
 
   // The magic that lets this work on *any* pin
@@ -399,9 +399,9 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
 
   if (AVR::DShot::BDShotConfig::AssemblyOptimizations::saveResultRegisters) {
     // Save the contents of the call-saved result registers
-    asm("push " Result0Reg "\n\t"
-        "push " Result1Reg "\n\t"
-        "push " Result2Reg "\n\t");
+    asm("push " Result0Reg);
+    asm("push " Result1Reg);
+    asm("push " Result2Reg);
   }
 
   asm("; Setting up our magic registers: " Result0Reg " " Result1Reg " " Result2Reg " r30 r31 or Carry\n\t");
@@ -552,15 +552,15 @@ static AVR::DShot::Response fromResult() {
 
   if (AVR::DShot::BDShotConfig::AssemblyOptimizations::saveResultRegisters) {
     // Restore the contents of the call-saved result registers
-    asm("pop  " Result2Reg "\n\t"
-        "pop  " Result1Reg "\n\t"
-        "pop  " Result0Reg "\n\t");
+    asm("pop " Result2Reg);
+    asm("pop " Result1Reg);
+    asm("pop " Result0Reg);
   }
 
   if (AVR::DShot::BDShotConfig::AssemblyOptimizations::saveZRegister) {
     // Restore the contents of the call-saved result registers
-    asm("pop  r31\n\t"
-        "pop  r30\n\t");
+    asm("pop r31");
+    asm("pop r30");
   }
 
   using AVR::DShot::Response;
