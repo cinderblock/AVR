@@ -505,7 +505,7 @@ static AVR::DShot::Response fromResult() {
 
       // Now we turn 3 bytes into 4 quintets
 
-      // Layout:                 Result 2   Result 1   Result 0 Carry
+      // Layout:                           Result 2 | Result 1 | Result 0|Carry
       "mov  r24, " /**/ Result0Reg /**/ "\t;   3333  3222 2211  1110 0000 x\n\t" // n0 is ready, move to r24 for later.
 
       "rol  " /**/ Result1Reg /**/ /**/ "\t;   3333  2222 211x  1110 0000 3\n\t"
