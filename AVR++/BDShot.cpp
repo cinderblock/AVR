@@ -406,14 +406,9 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
 
   asm("; Setting up our magic registers: " Result0Reg " " Result1Reg " " Result2Reg " r30 r31 or Carry\n\t");
 
-  asm("ldi " Result0Reg ", %[result0] ; result0,\n\t"
-      "ldi " Result1Reg ", %[result1] ; result1\n\t"
-      "ldi " Result2Reg ", %[result2] ; result2\n\t"
-      :
-      : [result0] "M"(FinishedMarker >> (8 * 0)), // lsb
-        [result1] "M"(FinishedMarker >> (8 * 1)),
-        [result2] "M"(FinishedMarker >> (8 * 2)) // msb
-      : Result0Reg, Result1Reg, Result2Reg);
+  asm("ldi " Result0Reg ", %0 ; result0" ::"M"(FinishedMarker >> (8 * 0)) : Result0Reg); // lsb
+  asm("ldi " Result1Reg ", %0 ; result1" ::"M"(FinishedMarker >> (8 * 1)) : Result1Reg);
+  asm("ldi " Result2Reg ", %0 ; result2" ::"M"(FinishedMarker >> (8 * 2)) : Result2Reg); // msb
 
   // Make sure Carry starts in expected state
   asm("clc \t;Clear Carry Flag");
