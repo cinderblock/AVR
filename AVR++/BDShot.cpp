@@ -34,48 +34,20 @@ namespace BDShotTimer {
 static inline void init(u1 period) {
   using namespace AVR::DShot::BDShotConfig;
 
-  // Alternate timer mode that is needed to use the OCR debug outputs
-  constexpr bool useFastPWM = Debug::OutputOCR;
-
   // CTC Mode (clear counter at OCR0A)
   u1 wgm = 0b010;
   u1 const prescaler = 1;
 
-  u1 com0A = 0;
-  u1 com0B = 0;
-
-  // Fast PWM is similar enough to CTC Mode that we don't care which one we use
-  if (useFastPWM) { wgm = 0b111; }
-
-  asm("; Setup Timer Output Compare Modules");
+  asm("; Setup Timer");
 
   // Set TOP value
   OCR0A = period - 1;
-
-  if (Debug::OutputOCR) {
-    static_assert(Debug::OutputOCR <= useFastPWM, "DebugUseOCR requires useFastPWM");
-
-    OCR0B = period / 2;
-
-    com0A = 0b01; // Toggle on compare match
-    // com0B = 0b01; // Toggle on compare match
-    com0B = 0b11; // Set on compare match, clear at TOP
-
-// Known pins for ATmega32u4
-#ifdef __AVR_ATmega32U4__
-    // IO Setup OCR0A (PB7, OC1C)
-    Output<AVR::Ports::B, 7>::init();
-
-    // IO Setup OCR0B (PD0, SCL)IDR
-    Output<AVR::Ports::D, 0>::init();
-#endif
-  }
 
   // TODO: Make timer configurable?
 
   // Set up and start timer that we use internally
   TIMSK0 = 0; // Ensure timer interrupts are disabled
-  TCCR0A = (com0A & 0b11) << COM0A0 | (com0B & 0b11) << COM0B0 | (wgm & 0b11);
+  TCCR0A = wgm & 0b11;
   // Start the timer
   TCCR0B = ((wgm >> 2) & 1) << WGM02 | (prescaler & 0b111) << CS00;
 }

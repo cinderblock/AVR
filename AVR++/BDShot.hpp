@@ -138,9 +138,6 @@ constexpr bool BeforeProcessing = false;                    // After sampling 20
 
 // Debugging/development features
 namespace Debug {
-// Use Timer0 OCR to generate outputs that we can watch to verify sampling timing
-constexpr bool OutputOCR = false;
-
 // Use PB6 as an extra GPIO to verify timing for various parts of the code
 using Pin = AVR::Output<AVR::Ports::B, 8>;
 
