@@ -148,11 +148,11 @@ public:
   static constexpr unsigned Max = RawMax - Zero;
 
 private:
-  static constexpr inline u2 scaleToCommandMax(double value) { return const_round(clamp(value) * Max); }
-  static constexpr inline u2 scaleToCommandMax(float value) { return const_round(clamp(value) * Max); }
+  static constexpr inline u2 scaleToCommandMax(double value) { return Const::round(Const::clamp(value) * Max); }
+  static constexpr inline u2 scaleToCommandMax(float value) { return Const::round(Const::clamp(value) * Max); }
 
-  static constexpr inline u2 commandToRaw(u2 command) { return min<u2>(command, Max) + Zero; }
-  static constexpr inline u2 commandToRaw(int command) { return u2(clamp<int>(command, Max)) + Zero; }
+  static constexpr inline u2 commandToRaw(u2 command) { return Const::min<u2>(command, Max) + Zero; }
+  static constexpr inline u2 commandToRaw(int command) { return u2(Const::clamp<int>(command, Max)) + Zero; }
   static constexpr inline u2 commandToRaw(float command) { return commandToRaw(scaleToCommandMax(command)); }
   static constexpr inline u2 commandToRaw(double command) { return commandToRaw(scaleToCommandMax(command)); }
   static constexpr inline u2 commandToRaw(SpecialCommand command) { return static_cast<u2>(command); }

@@ -65,9 +65,9 @@ public:
     static constexpr double pulseLengthRecover = MinRecoveryNanos / 1e9;
 
     // Cycles needed by microprocessor to achieve the desired periods
-    static constexpr unsigned cyclesShort = const_round(F_CPU * pulseLengthShort);
-    static constexpr unsigned cyclesLong = const_round(F_CPU * pulseLengthLong);
-    static constexpr unsigned cyclesRecover = const_round(F_CPU * pulseLengthRecover);
+    static constexpr unsigned cyclesShort = Const::round(F_CPU * pulseLengthShort);
+    static constexpr unsigned cyclesLong = Const::round(F_CPU * pulseLengthLong);
+    static constexpr unsigned cyclesRecover = Const::round(F_CPU * pulseLengthRecover);
 
     /**
      * In order to get accurate transition times, we need to know how long other instructions that are used/executed
@@ -133,9 +133,9 @@ public:
     static constexpr unsigned minCyclesRecover = 5;
     static constexpr unsigned outerLoopExtraCycles = 7;
 
-    static constexpr unsigned delayCyclesA = max<signed>(0, cyclesShort - minCyclesShort);
-    static constexpr unsigned delayCyclesB = max<signed>(0, cyclesLong - minCyclesLong - delayCyclesA);
-    static constexpr unsigned delayCyclesC = max<signed>(0, cyclesRecover - minCyclesRecover);
+    static constexpr unsigned delayCyclesA = Const::max<signed>(0, cyclesShort - minCyclesShort);
+    static constexpr unsigned delayCyclesB = Const::max<signed>(0, cyclesLong - minCyclesLong - delayCyclesA);
+    static constexpr unsigned delayCyclesC = Const::max<signed>(0, cyclesRecover - minCyclesRecover);
 
     // Values that will actually be used. For developer inspection with modern editor. Not used in code.
 

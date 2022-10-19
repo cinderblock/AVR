@@ -125,16 +125,16 @@ void AVR::DShot::BDShot<Port, Pin, Speed>::init() {
 #define Result1Reg "r19"
 #define Result2Reg "r20"
 
-static_assert(!equal(Result0Reg, Result1Reg), "Result0Reg must not be equal to Result1Reg");
-static_assert(!equal(Result1Reg, Result2Reg), "Result1Reg must not be equal to Result2Reg");
-static_assert(!equal(Result2Reg, Result0Reg), "Result2Reg must not be equal to Result0Reg");
+static_assert(!Const::equal(Result0Reg, Result1Reg), "Result0Reg must not be equal to Result1Reg");
+static_assert(!Const::equal(Result1Reg, Result2Reg), "Result1Reg must not be equal to Result2Reg");
+static_assert(!Const::equal(Result2Reg, Result0Reg), "Result2Reg must not be equal to Result0Reg");
 
 #define CheckRegister(n)                                                                                               \
-  static_assert(!equal(Result##n##Reg, "r0"), "Result" #n "Reg must not be __tmp_reg__");                              \
-  static_assert(!equal(Result##n##Reg, "r1"), "Result" #n "Reg must not be __zero_reg__");                             \
-  static_assert(!equal(Result##n##Reg, "r30"), "Result" #n "Reg must not be Z register");                              \
-  static_assert(!equal(Result##n##Reg, "r31"), "Result" #n "Reg must not be Z register");                              \
-  static_assert(!equal(Result##n##Reg, "r24"), "Result" #n "Reg must not be a register that GCC uses");
+  static_assert(!Const::equal(Result##n##Reg, "r0"), "Result" #n "Reg must not be __tmp_reg__");                       \
+  static_assert(!Const::equal(Result##n##Reg, "r1"), "Result" #n "Reg must not be __zero_reg__");                      \
+  static_assert(!Const::equal(Result##n##Reg, "r30"), "Result" #n "Reg must not be Z register");                       \
+  static_assert(!Const::equal(Result##n##Reg, "r31"), "Result" #n "Reg must not be Z register");                       \
+  static_assert(!Const::equal(Result##n##Reg, "r24"), "Result" #n "Reg must not be a register that GCC uses");
 
 CheckRegister(0);
 CheckRegister(1);

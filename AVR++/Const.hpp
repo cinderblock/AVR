@@ -1,8 +1,10 @@
 #pragma once
 
-template <typename T>
-inline constexpr int const_round(T f) {
-  return f > 0.0 ? int(f + 0.5) : int(f - 0.5);
+namespace Const {
+
+template <typename T, typename R = int>
+inline constexpr R round(T f) {
+  return f > 0.0 ? R(f + 0.5) : R(f - 0.5);
 }
 template <typename T>
 inline constexpr T max(T a, T b) {
@@ -27,3 +29,5 @@ constexpr bool equal(char const *a, char const *b) {
     if (*a++ != *b++) return false;
   return true;
 }
+
+} // namespace Const

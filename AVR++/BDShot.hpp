@@ -272,9 +272,9 @@ protected:
     }
 
     static constexpr double bitPeriodNanos = samplePeriodNanos(Speed);
-    static constexpr unsigned delayPeriodTicks = const_round(bitPeriodNanos * F_CPU / 1e9);
-    static constexpr unsigned delayHalfPeriodTicks = const_round(bitPeriodNanos * F_CPU / 1e9 / 2);
-    static constexpr unsigned delay3HalfPeriodTicks = const_round(bitPeriodNanos * 3 * F_CPU / 1e9 / 2);
+    static constexpr unsigned delayPeriodTicks = Const::round(bitPeriodNanos * F_CPU / 1e9);
+    static constexpr unsigned delayHalfPeriodTicks = Const::round(bitPeriodNanos * F_CPU / 1e9 / 2);
+    static constexpr unsigned delay3HalfPeriodTicks = Const::round(bitPeriodNanos * 3 * F_CPU / 1e9 / 2);
   };
 
   using Parent = DShot<Port, Pin, Speed, true>;
