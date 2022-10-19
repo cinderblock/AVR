@@ -113,11 +113,14 @@ constexpr bool supportEDT = true;
 
 constexpr bool useDebounce = false;
 
+namespace AssemblyOptimizations {
 // Not needed.
 // Saves a word of flash and a clock cycle, but this is at the end when speed doesn't matter as much.
 // Relative jumps are faster but can't reach whole program space.
 // If you see errors about "relocation truncated to fit", try setting this to "false".
 constexpr bool useRelativeJmpAtEndISR = true;
+
+} // namespace AssemblyOptimizations
 
 // All of these are way overkill. The minimum watchdog timeout is 15ms and the maximum time here is 250us.
 namespace ResetWatchdog {

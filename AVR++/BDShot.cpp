@@ -615,7 +615,7 @@ void AVR::DShot::BDShot<Port, Pin, Speed>::ReadBitISR() {
 
   // Jump to the function [MakeResponse::fromResult()] that makes the result the getResponse() caller wants.
   // When it returns, since we've mucked with the call stack, it'll return in place of getResponse().
-  if (BDShotConfig::useRelativeJmpAtEndISR) {
+  if (BDShotConfig::AssemblyOptimizations::useRelativeJmpAtEndISR) {
     asm("rjmp %x[Done]; Jump to MakeResponse::fromResult" : : [Done] "p"(&MakeResponse::fromResult));
   } else {
     asm("jmp  %x[Done]; Jump to MakeResponse::fromResult" : : [Done] "p"(&MakeResponse::fromResult));
