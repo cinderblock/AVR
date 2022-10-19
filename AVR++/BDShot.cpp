@@ -156,7 +156,7 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
    *
    * Instead, we try to recover clocking information on *any* transition in a fast (~3 clock cycles) spin loop.
    *
-   * Timer overflows indicate a received bit.
+   * Timer overflows mean it's time to sample a bit.
    * We can service this safely since we expect no transitions mid bit.
    *
    * Pseudo code:
@@ -169,7 +169,7 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
    *   - On Transition, Set new timer value
    * - On Timer Overflow Interrupt
    *   - Sample & store bit
-   *   - if 20 bits received
+   *   - If 20 bits received
    *     - Parse and return response
    *
    * Assumptions:
