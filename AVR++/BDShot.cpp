@@ -346,6 +346,7 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
   }
 
   // Yay! We're getting a response. Try and receive it!
+
   if (ResetWatchdog::ReceivedFirstTransition) asm("wdr");
 
   asm("; Initial Ticks");
@@ -402,6 +403,8 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
 
     BDShotTimer::setCounter(syncValue);
 
+    if (ResetWatchdog::ReceivedTransition) asm("wdr");
+
     if (Debug::EmitPulseAtSync) {
       Debug::Pin::on();
       Debug::Pin::off();
@@ -413,6 +416,8 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
     } while (isHigh() || (BDShotConfig::useDebounce && isHigh()));
 
     BDShotTimer::setCounter(syncValue);
+
+    if (ResetWatchdog::ReceivedTransition) asm("wdr");
 
     if (Debug::EmitPulseAtSync) {
       Debug::Pin::on();
@@ -460,6 +465,8 @@ static AVR::DShot::Response fromResult() {
   // We can also trash the previously set Z register value since we don't need it.
   asm("pop r30");
   asm("pop r30");
+
+  if (AVR::DShot::BDShotConfig::ResetWatchdog::BeforeProcessing) asm("wdr");
 
   Basic::u1 n0, n1, n2, n3;
 
