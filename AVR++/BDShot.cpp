@@ -381,6 +381,12 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
   BDShotTimer::setCounter(timerCounterValueInitial);
   BDShotTimer::clearOverflowFlag();
 
+  if (AVR::DShot::BDShotConfig::AssemblyOptimizations::saveZRegister) {
+    // Save the contents of the call-saved result registers
+    asm("push r30\n\t"
+        "push r31\n\t");
+  }
+
   // The magic that lets this work on *any* pin
   AVR::Core::setZ(&ReadBitISR);
   // Just make sure nothing else uses the Z registers locally (with a hope and educated guesses)
@@ -549,6 +555,12 @@ static AVR::DShot::Response fromResult() {
     asm("pop  " Result2Reg "\n\t"
         "pop  " Result1Reg "\n\t"
         "pop  " Result0Reg "\n\t");
+  }
+
+  if (AVR::DShot::BDShotConfig::AssemblyOptimizations::saveZRegister) {
+    // Restore the contents of the call-saved result registers
+    asm("pop  r31\n\t"
+        "pop  r30\n\t");
   }
 
   using AVR::DShot::Response;
