@@ -87,8 +87,7 @@
  *   inline constexpr u2        getPeriodMicros()     const;
  *   inline constexpr float     getRPM()              const;
  *   inline constexpr bool      isStopped()           const;
- *   inline constexpr operator  u2()                  const { return getPeriodMicros();}
- *   inline constexpr operator  bool()                const { return !isError();}
+ *   inline constexpr operator  u2()                  const { return getPeriodMicros(); }
  * }
  *
  */
@@ -117,6 +116,7 @@ constexpr bool useDebounce = false;
 // Not needed.
 // Saves a word of flash and a clock cycle, but this is at the end when speed doesn't matter as much.
 // Relative jumps are faster but can't reach whole program space.
+// If you see errors about "relocation truncated to fit", try setting this to "false".
 constexpr bool useRelativeJmpAtEndISR = true;
 
 // All of these are way overkill. The minimum watchdog timeout is 15ms and the maximum time here is 250us.
@@ -129,12 +129,28 @@ constexpr bool ReceivedTransition = false;                  // Every time we rec
 constexpr bool SampledBit = false;                          // Every time we sample a bit, every 2.7us for DSHOT150
 constexpr bool BeforeProcessing = false;                    // After sampling 20 bits
 } // namespace ResetWatchdog
+
+// Debugging/development features
+namespace Debug {
+// Use Timer0 OCR to generate outputs that we can watch to verify sampling timing
+constexpr bool OutputOCR = false;
+
+// Use PB6 as an extra GPIO to verify timing for various parts of the code
+using Pin = AVR::Output<AVR::Ports::B, 8>;
+
+constexpr bool EmitPulseAtSample = true;
+constexpr bool EmitPulsesAtIdle = false;
+constexpr bool EmitPulseAtSync = false;
+} // namespace Debug
 } // namespace BDShotConfig
 
 class Response {
 public:
-  constexpr static unsigned baseBits = 9;
-  constexpr static unsigned exponentBits = 3;
+  constexpr static unsigned BaseBits = 9;
+  constexpr static unsigned ExponentBits = 3;
+  constexpr static u1 ExponentMax = 1 << ExponentBits;
+  constexpr static u1 ExponentTop = ExponentMax - 1;
+  constexpr static u1 ExponentMask = ExponentMax - 1;
 
 private:
   u1 lsb;
@@ -200,9 +216,14 @@ public:
   inline u1 constexpr getTelemetryValue() const { return BDShotConfig::supportEDT ? lsb : -1; }
 
   inline constexpr u2 getBase() const { return (u2(BDShotConfig::supportEDT | (msb & 1)) << 8) | lsb; }
-  inline constexpr u2 getExponent() const { return (msb >> 1) & ((1 << exponentBits) - 1); }
+  inline constexpr u2 getExponent() const {
+    // Don't need to mask because it's not an error
+    return msb >> 1;
+  }
 
   inline u2 constexpr getPeriodMicros() const { return getBase() << getExponent(); }
+
+  inline constexpr operator u2() const { return getPeriodMicros(); }
 
   /**
    * @brief Convert internal notation to float rpm
@@ -221,8 +242,6 @@ public:
    */
   inline float constexpr getRPM(u1 polePairs = 1) const { return 60e6 / (u3(polePairs) * getPeriodMicros()); }
 
-  inline constexpr operator u2() const { return getPeriodMicros(); }
-
   inline bool constexpr isStopped() const { return msb == 0x0f && lsb == 0xff; }
 };
 
@@ -235,13 +254,13 @@ protected:
     inline static constexpr double samplePeriodNanos(Speeds speed) {
       switch (speed) {
       case Speeds::DSHOT150:
-        return 4e9f / 150e3 / 5;
+        return 4e9 / 150e3 / 5;
       case Speeds::DSHOT300:
-        return 4e9f / 300e3 / 5;
+        return 4e9 / 300e3 / 5;
       case Speeds::DSHOT600:
-        return 4e9f / 600e3 / 5;
+        return 4e9 / 600e3 / 5;
       case Speeds::DSHOT1200:
-        return 4e9f / 1200e3 / 5;
+        return 4e9 / 1200e3 / 5;
       }
       return 0;
     }
@@ -280,29 +299,6 @@ public:
 
   static void init();
 };
-
-// Debugging/development features
-namespace Debug {
-// Output internet states to UDR1
-constexpr bool EmitRawResultToUART = false;
-constexpr bool EmitEncodedNibblesToUART = false;
-
-// Use Timer0 OCR to generate outputs that we can watch to verify sampling timing
-constexpr bool OutputOCR = false;
-
-// Use PB6 as an extra GPIO to verify timing for various parts of the code
-constexpr bool RepurposeLedPin = false;
-using Pin = AVR::Output<AVR::Ports::B, 6>;
-
-template <bool CheckBufferEmpty = true>
-void WriteByte(Basic::u1 const byte);
-
-constexpr bool EmitPulseAtSample = false;
-constexpr bool EmitPulsesAtIdle = false;
-constexpr bool EmitPulseAtSync = false;
-
-constexpr bool ShowSpeedOnLEDs = false;
-} // namespace Debug
 
 } // namespace DShot
 } // namespace AVR

@@ -37,11 +37,11 @@ void AVR::DShot::BDShot<Port, Pin, Speed>::init() {
     Parent::IO::output();
 
     // TODO: This is a long delay. Allow other things to happen while we wait.
-    _delay_ms(AVR::DShot::BDShotConfig::exitBootloaderDelay);
+    _delay_ms(BDShotConfig::exitBootloaderDelay);
   }
 
   // Alternate timer mode that is needed to use the OCR debug outputs
-  constexpr bool useFastPWM = Debug::OutputOCR;
+  constexpr bool useFastPWM = BDShotConfig::Debug::OutputOCR;
 
   // CTC Mode (clear counter at OCR0A)
   u1 wgm = 0b010;
@@ -58,8 +58,8 @@ void AVR::DShot::BDShot<Port, Pin, Speed>::init() {
   // Sample on overflows
   OCR0A = Periods::delayPeriodTicks - 1;
 
-  if (Debug::OutputOCR) {
-    static_assert(Debug::OutputOCR <= useFastPWM, "DebugUseOCR requires useFastPWM");
+  if (BDShotConfig::Debug::OutputOCR) {
+    static_assert(BDShotConfig::Debug::OutputOCR <= useFastPWM, "DebugUseOCR requires useFastPWM");
 
     OCR0B = Periods::delayHalfPeriodTicks;
 
@@ -269,10 +269,10 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
    * - Other instructions in the ISR before sampling the pin into a temp register
    */
   constexpr unsigned ticksFromOverflowToISRSample =
-      AVR::Core::Ticks::Hardware::ISR +     // ISR time
-      AVR::Core::Ticks::Instruction::Jmp +  // Initial jmp table, could be eliminated with a custom .init table
-      AVR::Core::Ticks::Instruction::IJmp + // Our jmp to Z
-      Debug::EmitPulseAtSample              // Pin toggle adds a clock cycle
+      AVR::Core::Ticks::Hardware::ISR +      // ISR time
+      AVR::Core::Ticks::Instruction::Jmp +   // Initial jmp table, could be eliminated with a custom .init table
+      AVR::Core::Ticks::Instruction::IJmp +  // Our jmp to Z
+      BDShotConfig::Debug::EmitPulseAtSample // Pin toggle adds a clock cycle
       ;
 
   using namespace AVR::DShot::BDShotConfig;
@@ -628,7 +628,7 @@ void AVR::DShot::BDShot<Port, Pin, Speed>::ReadBitISR() {
   // If input was low, carry is still low.
   // If was high, carry is now high.
 
-  if (AVR::DShot::BDShotConfig::ResetWatchdog::SampledBit) asm("wdr");
+  if (BDShotConfig::ResetWatchdog::SampledBit) asm("wdr");
 
   asm("; Store Carry into Result\n\t"
       "rol " Result0Reg "\n\t"
@@ -659,7 +659,9 @@ DoneSamplingPin:
 ISR(TIMER0_COMPA_vect, ISR_NAKED) {
   asm("; Start of TIMER0_COMPA_vect");
 
-  if (AVR::DShot::Debug::EmitPulseAtSample) AVR::DShot::Debug::Pin::on();
+  using AVR::DShot::BDShotConfig::Debug::EmitPulseAtSample;
+  using AVR::DShot::BDShotConfig::Debug::Pin;
+  if (EmitPulseAtSample) Pin::on();
 
   // If we got *extra* fancy, we could save 3 clock cycles by putting this "ijmp" directly in the interrupt table
   // Jump to Z register, set in getResponse() with setZ()
