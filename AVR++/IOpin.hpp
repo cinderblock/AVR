@@ -25,69 +25,160 @@ class IOpin {
   static_assert(Pin <= 8, "AVR has 8-bit IO Ports. '8' is allowed to disable a Pin");
 
 public:
-  inline IOpin() {}
+  constexpr static bool isDummy = Pin == 8;
+
+  constexpr inline IOpin() {}
 
   /**
    * Sets bit in DDRx
    */
-  inline static void output() { *(volatile uint8_t *)DDR |= mask; }
+  inline static void output() {
+    if (!mask) {
+      asm("; IOpin::output dummy. %[PORT]" ::[PORT] "I"(Port));
+      return;
+    }
+
+    *(volatile uint8_t *)DDR |= mask;
+  }
   /**
    * Clears bit in DDRx
    */
-  inline static void input() { *(volatile uint8_t *)DDR &= ~mask; }
+  inline static void input() {
+    if (!mask) {
+      asm("; IOpin::input dummy. %[PORT]" ::[PORT] "I"(Port));
+      return;
+    }
+
+    *(volatile uint8_t *)DDR &= ~mask;
+  }
 
   /**
    * Sets bit in PUEx (or PORT)
    */
-  inline static void enablePullUp() { *(volatile uint8_t *)PUE |= mask; }
+  inline static void enablePullUp() {
+    if (!mask) {
+      asm("; IOpin::enablePullUp dummy. %[PORT]" ::[PORT] "I"(Port));
+      return;
+    }
+
+    *(volatile uint8_t *)PUE |= mask;
+  }
   /**
    * Clears bit in PUEx (or PORT)
    */
-  inline static void disablePullUp() { *(volatile uint8_t *)PUE &= ~mask; }
+  inline static void disablePullUp() {
+    if (!mask) {
+      asm("; IOpin::disablePullUp dummy. %[PORT]" ::[PORT] "I"(Port));
+      return;
+    }
+
+    *(volatile uint8_t *)PUE &= ~mask;
+  }
   /**
    * Clears bit in PUEx (or PORT)
    */
-  inline static void setPullUp(bool v) { v ? enablePullUp() : disablePullUp(); }
+  inline static void setPullUp(bool v) {
+    if (!mask) {
+      asm("; IOpin::setPullUp dummy. %[PORT]" ::[PORT] "I"(Port));
+      return;
+    }
+
+    v ? enablePullUp() : disablePullUp();
+  }
 
   /**
    * Sets bit in PORTx
    */
-  inline static void set() { *(volatile uint8_t *)PORT |= mask; }
+  inline static void set() {
+    if (!mask) {
+      asm("; IOpin::set dummy. %[PORT]" ::[PORT] "I"(Port));
+      return;
+    }
+
+    *(volatile uint8_t *)PORT |= mask;
+  }
 
   /**
    * Clears bit in PORTx
    */
-  inline static void clr() { *(volatile uint8_t *)PORT &= ~mask; }
+  inline static void clr() {
+    if (!mask) {
+      asm("; IOpin::clr dummy. %[PORT]" ::[PORT] "I"(Port));
+      return;
+    }
+
+    *(volatile uint8_t *)PORT &= ~mask;
+  }
 
   /**
    * Sets bit in PINx
    */
-  inline static void tgl() { *(volatile uint8_t *)PIN = mask; }
+  inline static void tgl() {
+    if (!mask) {
+      asm("; IOpin::tgl dummy. %[PORT]" ::[PORT] "I"(Port));
+      return;
+    }
+
+    *(volatile uint8_t *)PIN = mask;
+  }
 
   /**
    * Returns value of bit in PINx
    */
-  inline static bool isHigh() { return *(volatile uint8_t *)PIN & mask; }
+  inline static bool isHigh() {
+    if (!mask) {
+      asm("; IOpin::isHigh dummy. %[PORT]" ::[PORT] "I"(Port));
+      return false;
+    }
+
+    return *(volatile uint8_t *)PIN & mask;
+  }
 
   /**
    * Returns value of bit in PORTx
    */
-  inline static bool isDriveHigh() { return *(volatile uint8_t *)PORT & mask; }
+  inline static bool isDriveHigh() {
+    if (!mask) {
+      asm("; IOpin::isDriveHigh dummy. %[PORT]" ::[PORT] "I"(Port));
+      return false;
+    }
+
+    return *(volatile uint8_t *)PORT & mask;
+  }
 
   /**
    * Returns value of bit in DDRx
    */
-  inline static bool isOutputEnabled() { return *(volatile uint8_t *)DDR & mask; }
+  inline static bool isOutputEnabled() {
+    if (!mask) {
+      asm("; IOpin::isOutputEnabled dummy. %[PORT]" ::[PORT] "I"(Port));
+      return false;
+    }
+
+    return *(volatile uint8_t *)DDR & mask;
+  }
 
   /**
    * set() or clr() based on v
    */
-  inline static void set(bool v) { v ? set() : clr(); }
+  inline static void set(bool v) {
+    if (!mask) {
+      asm("; IOpin::set dummy. %[PORT]" ::[PORT] "I"(Port));
+      return;
+    }
+
+    v ? set() : clr();
+  }
 
   /**
    * set() or clr() based on v
    */
   inline bool operator=(bool v) {
+    if (!mask) {
+      asm("; IOpin::operator=(bool v) dummy. %[PORT]" ::[PORT] "I"(Port));
+      return;
+    }
+
     set(v);
     return v;
   }
@@ -96,6 +187,11 @@ public:
    * Toggles the output
    */
   inline bool operator++(int) {
+    if (!mask) {
+      asm("; IOpin::operator++(int) dummy. %[PORT]" ::[PORT] "I"(Port));
+      return;
+    }
+
     tgl();
     return isDriveHigh();
   }
