@@ -391,10 +391,12 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
   // That bit will roll into Carry bit, which we test to break out of our spin loop.
   constexpr u3 FinishedMarker = 1 << (8 * sizeof(FinishedMarker) - ExpectedBits);
 
-  // Save the contents of the call-saved result registers
-  // asm("push " Result0Reg "\n\t"
-  //     "push " Result1Reg "\n\t"
-  //     "push " Result2Reg "\n\t");
+  if (AVR::DShot::BDShotConfig::AssemblyOptimizations::saveResultRegisters) {
+    // Save the contents of the call-saved result registers
+    asm("push " Result0Reg "\n\t"
+        "push " Result1Reg "\n\t"
+        "push " Result2Reg "\n\t");
+  }
 
   asm("; Setting up our magic registers: " Result0Reg " " Result1Reg " " Result2Reg " r30 r31 or Carry\n\t");
 
@@ -542,10 +544,12 @@ static AVR::DShot::Response fromResult() {
       : [decodeNibble] "p"(&decodeNibble)
       : "r24", Result0Reg, Result1Reg, Result2Reg);
 
-  // Restore the contents of the call-saved result registers
-  // asm("pop  " Result2Reg "\n\t"
-  //     "pop  " Result1Reg "\n\t"
-  //     "pop  " Result0Reg "\n\t");
+  if (AVR::DShot::BDShotConfig::AssemblyOptimizations::saveResultRegisters) {
+    // Restore the contents of the call-saved result registers
+    asm("pop  " Result2Reg "\n\t"
+        "pop  " Result1Reg "\n\t"
+        "pop  " Result0Reg "\n\t");
+  }
 
   using AVR::DShot::Response;
 

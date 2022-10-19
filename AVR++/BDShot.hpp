@@ -120,6 +120,8 @@ namespace AssemblyOptimizations {
 // If you see errors about "relocation truncated to fit", try setting this to "false".
 constexpr bool useRelativeJmpAtEndISR = true;
 
+// Shouldn't be needed since we use call-clobbered registers.
+constexpr bool saveResultRegisters = false;
 } // namespace AssemblyOptimizations
 
 // All of these are way overkill. The minimum watchdog timeout is 15ms and the maximum time here is 250us.
