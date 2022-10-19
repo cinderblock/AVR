@@ -462,9 +462,9 @@ static AVR::DShot::Response fromResult() {
    */
 
   // Pop the interrupt return location off the stack (to get out of the ultra fast main loop)
-  // We can also trash the previously set Z register value since we don't need it.
-  asm("pop r30");
-  asm("pop r30");
+  // Use a register we're about to use for other stuff
+  asm("pop r24");
+  asm("pop r24");
 
   if (AVR::DShot::BDShotConfig::ResetWatchdog::BeforeProcessing) asm("wdr");
 
