@@ -22,7 +22,6 @@
 #include "DShot.cpp"
 
 // cSpell:ignore datasheet
-// cSpell:ignore eeep
 // cSpell:ignore TCCR TIMSK TIFR TCNT OCRA COMPA vect
 // cSpell:ignore SREG EIMSK PCMSK PCICR UCSR RXCIE TXCIE UDRIE USBCON VBUSTE UDIEN UEIENX SPMCSR SPMIE ACSR ACIE SPCR
 // cSpell:ignore SPIE EECR ADCSRA ADIE ADSC ADIF TWCR TWIE TWINT FPIE WDTCSR WDIE WDIF
@@ -156,39 +155,37 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
    * One way to receive this data would be to use a standard TTL level hardware serial port with the capability of
    * receiving 20 bits, or even implemented in software. This, however, has significant issues with clock drift.
    *
-   * Instead, we try to recover clocking information on *any* transition in a fast (~8 clock cycles) spin loop.
+   * Instead, we try to recover clocking information on *any* transition in a fast (~3 clock cycles) spin loop.
    *
    * Timer overflows indicate a received bit.
-   * We can service this safely since we expect no transitions.
+   * We can service this safely since we expect no transitions mid bit.
    *
    * Pseudo code:
-   * - Enable our interrupts
    * - Wait for initial high-to-low transition
    *   - Timeout if no response in >50us
    * - Start timer with overflow in 1.5 bit periods
    *   - We're skipping the first bit because it's a start bit that is *always* 0
-   * - Enable global interrupts
-   * - On Overflow Interrupt:
+   * - Enable our Timer Overflow Interrupt
+   * - Fast Loop waiting for Transition
+   *   - On Transition, Set new timer value
+   * - On Timer Overflow Interrupt
    *   - Sample & store bit
-   *   - if 20 bits
-   *     - Set Temp bit
-   * - Wait for Transition
-   *   - Sync timer
-   *     - Set to more than 0.5 bit period to accommodate delays. Likely ~0.6.
-   *       Overflow, and thus capture, in less than half a bit period
-   *   - Loop using Temp bit
+   *   - if 20 bits received
+   *     - Parse and return response
    *
    * Assumptions:
    * - All other interrupts are off
    * - Global interrupts are on
    */
 
+  // cSpell:ignore eeex
+
   // clang-format off
   /**
    * Let's walk through an example waveform. The bit periods are not quite uniform intentionally.
    * 
    * We're receiving this standard waveform that basically means "not spinning" (period is at maximum).
-   * Notice the timer counts up and overflows every ~bit period. On overflow, an interrupt is triggered and we sample the bit.
+   * Notice the timer counts up and overflows every approximate bit period. On overflow, an interrupt is triggered and we sample the bit.
    * In the "main" loop, we're watching for transitions. If we see one, reset the timer counter to an ideal middle value. This takes care of clock drift.
    * 
    * --------------- _____ ______ ------ _______ ------ ______ ______ ------- ______ ------ ______ _______ ------ ______ ----- _____ ------ _____ _____ _____ ------ --------------
@@ -205,11 +202,11 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
    * Result :  0101 00101001 01010001 - 20 bits
    * Shifted:  0010 10010100 10101000 - Shift result right by 1
    * Xor'd  :  0111 10111101 11111001 - 20 bits of gcr encoded data
-   * regroup:  //// //////|| ///||||| - group 20 bits as 4 5-bit words
+   * regroup:  //// //////|| ///||||| - group 20 bits as 4 5-bit words (now how assembly is implemented)
    * gcr    : 01111 01111 01111 11001 - 4 5-bit words
    * Nibble :     3     2     1     0 - decode each 5-bit word into nibbles of data
    * data   :  1111  1111  1111  0000 - 4 nibbles of data
-   * Meaning:  eeep  bbbb  bbbb  cccc - 3 bits exponent, 1 bit to mark EDT(0) or normal(1), 8 bits base, 4 bits checksum
+   * Meaning:  eeex  bbbb  bbbb  cccc - 3 bits exponent, 1 bit to mark EDT(0) or normal(1), 8 bits base, 4 bits checksum
    * Checksum: n3 ^ n2 ^ n1 ^ n0 ^ 0xf == 0
    * Spin period = (base << exponent) microseconds
    */
@@ -241,51 +238,56 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
    *
    * This comes mostly from 3 separate places:
    * - The AVR datasheet which specified ISR handling takes 5 clock cycles to execute.
-   * - The de facto standard JMP table as the first instructions in the ISR, could be eliminated with a custom .init
-   * table.
+   * - The de facto standard JMP table as the first instructions in the ISR (could be eliminated with a custom .init)
    * - Other instructions in the ISR before sampling the pin into a temp register
    */
   constexpr unsigned ticksFromOverflowToISRSample =
-      AVR::Core::Ticks::Hardware::ISR +      // ISR time
-      AVR::Core::Ticks::Instruction::Jmp +   // Initial jmp table, could be eliminated with a custom .init table
-      AVR::Core::Ticks::Instruction::IJmp +  // Our jmp to Z
-      BDShotConfig::Debug::EmitPulseAtSample // Pin toggle adds a clock cycle
-      ;
+      AVR::Core::Ticks::Hardware::ISR +        // ISR time
+      AVR::Core::Ticks::Instruction::Jmp +     // Initial jmp table, could be eliminated with a custom .init table
+      BDShotConfig::Debug::EmitPulseAtSample + // Pin toggle adds a clock cycle
+      AVR::Core::Ticks::Instruction::IJmp +    // Our jmp to Z
+      0;
 
   /**
    * Number of ticks it takes the initial spin loop to check for the initial high-to-low transition.
+   *
    * Most of the time, this number is used.
+   *
    * Sometimes, the timer has overflowed and we need to check that our timeout counter hasn't reached zero.
+   * In this case, we'll be slightly more out of sync. There is some minor optimization that could be done here.
+   * In any case, it will resync on the next bit transition.
    *
    * @see `ticksInitialSpinLoopWorstCase`
    *
    * @note Maximum accuracy we can achieve of timing on initial transition
    * @note These lists are generated from looking at the generated assembly for these functions.
    */
-  constexpr unsigned ticksInitialSpinLoop = 1                                           // Check Pin
-                                            + ResetWatchdog::WaitingFirstTransitionFast // WDR
-                                            + AVR::Core::Ticks::Instruction::RJmp       // Loop
-                                            + AVR::Core::Ticks::Instruction::Skip1Word  // Didn't overflow
-      ;
+  constexpr unsigned ticksInitialSpinLoop = 1 +                                         // Check Pin
+                                            ResetWatchdog::WaitingFirstTransitionFast + // WDR
+                                            AVR::Core::Ticks::Instruction::RJmp +       // Loop
+                                            AVR::Core::Ticks::Instruction::Skip1Word +  // Didn't overflow
+                                            0;
 
   /**
    * Number of ticks it takes the initial spin loop to check for the initial high-to-low transition while also
    * decrementing and checking the timer overflow counter.
    *
+   * This value is not used but computed for reference.
+   *
    * @note Maximum accuracy we can achieve of timing on initial transition
    * @note These lists are generated from looking at the generated assembly for these functions.
    */
-  constexpr unsigned ticksInitialSpinLoopWorstCase = 1                                           // Check Pin
-                                                     + ResetWatchdog::WaitingFirstTransitionFast // WDR
-                                                     + AVR::Core::Ticks::Instruction::RJmp       // Loop
-                                                     + 1                                         // Check Overflow flag
-                                                     + AVR::Core::Ticks::Instruction::RJmp       // Handle overflow
-                                                     + 1                                         // subi; i--
-                                                     + 1 // breq; if (i == 0) {<exit path>} else ...
-                                                     + 1 // sbi; clear timer flag
-                                                     + ResetWatchdog::WaitingFirstTransitionTimerOverflow // WDR
-                                                     + AVR::Core::Ticks::Instruction::RJmp // Back to main loop
-      ;
+  constexpr unsigned ticksInitialSpinLoopWorstCase = 1 +                                         // Check Pin
+                                                     ResetWatchdog::WaitingFirstTransitionFast + // WDR
+                                                     AVR::Core::Ticks::Instruction::RJmp +       // Loop
+                                                     1 +                                         // Check Overflow flag
+                                                     AVR::Core::Ticks::Instruction::RJmp +       // Handle overflow
+                                                     1 +                                         // subi; i--
+                                                     1 + // breq; if (i == 0) {<exit path>} else ...
+                                                     1 + // sbi; clear timer flag
+                                                     ResetWatchdog::WaitingFirstTransitionTimerOverflow + // WDR
+                                                     AVR::Core::Ticks::Instruction::RJmp + // Back to main loop
+                                                     0;
 
   static_assert(ticksInitialSpinLoopWorstCase < ticksInitialSpinLoop * 3,
                 "ticksInitialSpinLoopWorstCase is curiously large");
@@ -297,22 +299,22 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
    * @note These lists are generated from looking at the generated assembly for these functions.
    */
   constexpr unsigned ticksFromTransitionToInitialTimerSync =
-      AVR::Core::Ticks::Instruction::Skip1Word      // We test with a `sbic` instruction
-      + 2 * BDShotConfig::useDebounce               // Debounce compensation
-      + ResetWatchdog::ReceivedFirstTransition      // WDR
-      + AVR::Core::Ticks::Instruction::LoaDImediate // Set register to immediate
-      + AVR::Core::Ticks::Instruction::Out          // Set timer counter from register
-      ;
+      AVR::Core::Ticks::Instruction::Skip1Word +                             // We test with a `sbic` instruction
+      AVR::Core::Ticks::Instruction::Skip1Word * BDShotConfig::useDebounce + // Debounce compensation
+      ResetWatchdog::ReceivedFirstTransition +                               // WDR
+      AVR::Core::Ticks::Instruction::LoaDImediate +                          // Set register to immediate
+      AVR::Core::Ticks::Instruction::Out +                                   // Set timer counter from register
+      0;
 
   /**
    * Number of ticks it takes the ultra fast main spin loop to check for a transition
    *
    * @note Maximum accuracy we can achieve of timing on transition
    */
-  constexpr unsigned ticksSpinLoop = Debug::EmitPulsesAtIdle               // Pin toggle adds a clock cycle to the loop
-                                     + 1                                   // Reading the pin state takes 1 clock cycle
-                                     + AVR::Core::Ticks::Instruction::RJmp // Jump to start of loop
-      ;
+  constexpr unsigned ticksSpinLoop = Debug::EmitPulsesAtIdle +             // Pin toggle adds a clock cycle to the loop
+                                     1 +                                   // Reading the pin state takes 1 clock cycle
+                                     AVR::Core::Ticks::Instruction::RJmp + // Jump to start of loop
+                                     0;
 
   /**
    * Number of ticks from a transition to when we can set the timer to some value.
@@ -321,11 +323,11 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
    * @note Part of the phase adjustment of reading bits on timer overflow
    */
   constexpr unsigned ticksFromTransitionToTimerSync =
-      1                                    // Initial read
-      + 2 * BDShotConfig::useDebounce      // Debounce compensation
-      + 1                                  // Skip over rjmp
-      + AVR::Core::Ticks::Instruction::Out // Set timer counter from register
-      ;
+      1 +                                  // Initial read
+      2 * BDShotConfig::useDebounce +      // Debounce compensation
+      1 +                                  // Skip over rjmp
+      AVR::Core::Ticks::Instruction::Out + // Set timer counter from register
+      0;
 
   // Larger numbers will make the samples happen sooner
   constexpr int fudgeInitialTicks = 0;
@@ -333,25 +335,17 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
 
   // constexpr unsigned adjustSyncTicks = ticksFromOverflowToISRSample + 1;
   // constexpr unsigned adjustInitialTicks = adjustSyncTicks + 10;
-  constexpr unsigned adjustInitialTicks =
-      // Half of the normal loop time
-      ticksInitialSpinLoop / 2
-      // Initial sync
-      + ticksFromTransitionToInitialTimerSync
-      // Compensate for ISR service time
-      + ticksFromOverflowToISRSample
-      // Let us easily fudge the numbers
-      + fudgeInitialTicks;
+  constexpr unsigned adjustInitialTicks = ticksInitialSpinLoop / 2 +              // Half of the normal loop time
+                                          ticksFromTransitionToInitialTimerSync + // Initial sync
+                                          ticksFromOverflowToISRSample +          // Compensate for ISR service time
+                                          fudgeInitialTicks +                     // Let us easily fudge the numbers
+                                          0;
 
-  constexpr unsigned adjustSyncTicks =
-      // Half of the loop time
-      ticksSpinLoop / 2
-      // Continuous sync
-      + ticksFromTransitionToTimerSync
-      // Compensate for ISR service time
-      + ticksFromOverflowToISRSample
-      // Let us easily fudge the numbers
-      + fudgeSyncTicks;
+  constexpr unsigned adjustSyncTicks = ticksSpinLoop / 2 +              // Half of the loop time
+                                       ticksFromTransitionToTimerSync + // Continuous sync
+                                       ticksFromOverflowToISRSample +   // Compensate for ISR service time
+                                       fudgeSyncTicks +                 // Let us easily fudge the numbers
+                                       0;
 
   constexpr u1 timerCounterValueInitial = u1(adjustInitialTicks - Periods::delayHalfPeriodTicks);
   constexpr u1 timerCounterValueSync = Periods::delayHalfPeriodTicks + adjustSyncTicks;
@@ -383,14 +377,16 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
   // Yay! We're getting a response. Try and receive it!
   if (ResetWatchdog::ReceivedFirstTransition) asm("wdr");
 
-  // Set timer so that it matches trigger register in 1.5 bit periods
   asm("; Initial Ticks");
+  // Set timer so that it matches trigger register in 1.5 bit periods
   BDShotTimer::setCounter(timerCounterValueInitial);
   BDShotTimer::clearOverflowFlag();
 
   // The magic that lets this work on *any* pin
   AVR::Core::setZ(&ReadBitISR);
   // Just make sure nothing else uses the Z registers locally (with a hope and educated guesses)
+  // Also consider building with "-S" to see the generated assembly and inspect it manually.
+  // It will include many comments :)
 
   // Use a set bit in result to indicate we've gotten all the bits.
   // That bit will roll into Carry bit, which we test to break out of our spin loop.
@@ -462,9 +458,9 @@ inline static constexpr bool isBadChecksum(Basic::u1 n3, Basic::u1 n2, Basic::u1
 Basic::u1 decodeNibble(Basic::u1 b) { return GCR::decode(b & 0x1f); }
 
 static AVR::DShot::Response fromResult() {
-  asm("; fromResult");
-
   // All done!
+
+  asm("; DONE WITH REGISTERS: r30 r31 and Carry");
 
   AVR::DShot::BDShotTimer::disableOverflowInterrupt();
 
@@ -488,7 +484,7 @@ static AVR::DShot::Response fromResult() {
 
   Basic::u1 n0, n1, n2, n3;
 
-  asm("; NOW WE GET TO USE OUR REGISTERS: " Result0Reg " " Result1Reg " " Result2Reg "\n\t");
+  asm("; NOW WE GET TO USE OUR REGISTERS: " Result0Reg " " Result1Reg " " Result2Reg);
 
   asm(
       // First we undo the shifting
@@ -510,20 +506,20 @@ static AVR::DShot::Response fromResult() {
       // Now we turn 3 bytes into 4 quintets
 
       // Layout:                 Result 2   Result 1   Result 0 Carry
-      "mov  r24, " Result0Reg "\t;   3333  3222 2211  1110 0000 x\n\t" // n0 is ready. Put it directly into r24.
+      "mov  r24, " /**/ Result0Reg /**/ "\t;   3333  3222 2211  1110 0000 x\n\t" // n0 is ready, move to r24 for later.
 
-      "rol  " /**/ Result1Reg "\t;   3333  2222 211x  1110 0000 3\n\t"
-      "rol  " /**/ Result2Reg "\t; 3 3333  2222 211x  1110 0000 x\n\t" // n3 is ready in Result2Reg for later.
+      "rol  " /**/ Result1Reg /**/ /**/ "\t;   3333  2222 211x  1110 0000 3\n\t"
+      "rol  " Result2Reg /**/ /**/ /**/ "\t; 3 3333  2222 211x  1110 0000 x\n\t" // n3 is ready in Result2Reg for later.
 
-      "ror  " /**/ Result1Reg "\t; 3 3333  x222 2211  1110 0000 x\n\t"
-      "ror  " /**/ Result1Reg "\t; 3 3333  xx22 2221  1110 0000 1\n\t"
-      "ror  " /**/ Result0Reg "\t; 3 3333  xx22 2221  1111 0000 0\n\t"
-      "ror  " /**/ Result1Reg "\t; 3 3333  xxx2 2222  1111 0000 1\n\t" // n2 is ready in Result1Reg for later.
+      "ror  " /**/ Result1Reg /**/ /**/ "\t; 3 3333  x222 2211  1110 0000 x\n\t"
+      "ror  " /**/ Result1Reg /**/ /**/ "\t; 3 3333  xx22 2221  1110 0000 1\n\t"
+      "ror  " /**/ /**/ Result0Reg /**/ "\t; 3 3333  xx22 2221  1111 0000 0\n\t"
+      "ror  " /**/ Result1Reg /**/ /**/ "\t; 3 3333  xxx2 2222  1111 0000 1\n\t" // n2 is ready in Result1Reg for later.
 
-      "ror  " /**/ Result0Reg "\t; 3 3333  xxx2 2222  1111 1000 0\n\t"
-      "ror  " /**/ Result0Reg "\t; 3 3333  xxx2 2222  0111 1100 0\n\t"
-      "ror  " /**/ Result0Reg "\t; 3 3333  xxx2 2222  0011 1110 0\n\t"
-      "ror  " /**/ Result0Reg "\t; 3 3333  xxx2 2222  0001 1111 0\n\t" // n1 is ready in Result0Reg for later.
+      "ror  " /**/ /**/ Result0Reg /**/ "\t; 3 3333  xxx2 2222  1111 1000 0\n\t"
+      "ror  " /**/ /**/ Result0Reg /**/ "\t; 3 3333  xxx2 2222  0111 1100 0\n\t"
+      "ror  " /**/ /**/ Result0Reg /**/ "\t; 3 3333  xxx2 2222  0011 1110 0\n\t"
+      "ror  " /**/ /**/ Result0Reg /**/ "\t; 3 3333  xxx2 2222  0001 1111 0\n\t" // n1 is ready in Result0Reg for later.
 
       // Decode the GCR encoded quintets into nibbles
 
@@ -548,8 +544,14 @@ static AVR::DShot::Response fromResult() {
       : [decodeNibble] "p"(&decodeNibble)
       : "r24", Result0Reg, Result1Reg, Result2Reg);
 
+  // Restore the contents of the call-saved result registers
+  // asm("pop  " Result2Reg "\n\t"
+  //     "pop  " Result1Reg "\n\t"
+  //     "pop  " Result0Reg "\n\t");
+
   using AVR::DShot::Response;
 
+  // Yes, this order is correct. They are numbered by significance, and MSB was first.
   if (n3 == 0xff) return Response::Error::BadDecodeFirstNibble;
   if (n2 == 0xff) return Response::Error::BadDecodeSecondNibble;
   if (n1 == 0xff) return Response::Error::BadDecodeThirdNibble;
