@@ -427,25 +427,30 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
       if (Debug::EmitPulsesAtIdle) Debug::Pin::tgl();
       asm("; Ultra Fast Loop. Waiting for transition to high.");
     } while (!isHigh() || (BDShotConfig::useDebounce && !isHigh()));
+
     BDShotTimer::setCounter(syncValue);
+
     if (Debug::EmitPulseAtSync) {
       Debug::Pin::on();
       Debug::Pin::off();
     }
+
     do {
       if (Debug::EmitPulsesAtIdle) Debug::Pin::tgl();
       asm("; Ultra Fast Loop. Waiting for transition to low.");
     } while (isHigh() || (BDShotConfig::useDebounce && isHigh()));
+
     BDShotTimer::setCounter(syncValue);
+
     if (Debug::EmitPulseAtSync) {
       Debug::Pin::on();
       Debug::Pin::off();
     }
   }
 
-  // GCC doesn't think code execution can reach here, which is fine.
+  // GCC thinks code execution can't reach here, which is fine.
   // The ISR messes with the call stack and will "return" for us.
-  asm volatile("; UltraLoop End");
+  asm volatile("; Ultra Fast Loop Loop End");
 }
 
 namespace MakeResponse {
@@ -523,21 +528,22 @@ static AVR::DShot::Response fromResult() {
       "swap " /**/ /**/ Result0Reg /**/ "\t; 3 3333  xxx2 2222  xxx1 1111 x\n\t" // n1 is ready in Result0Reg for later.
 
       // Decode the GCR encoded quintets into nibbles
+      // We don't need to worry about trash in the upper nibbles because decodeNibble() masks them out
 
       "call %x[decodeNibble]\t; Decode nibbles\n\t"
-      "mov  %[n0], r24\n\t"
+      "mov  %[n0], r24\n\t" // n0 was in r24 already
 
       "mov  r24, " Result0Reg "\n\t"
       "call %x[decodeNibble]\t; Decode nibbles\n\t"
-      "mov  %[n1], r24\n\t"
+      "mov  %[n1], r24\n\t" // n1 was in Result0Reg
 
       "mov  r24, " Result1Reg "\n\t"
       "call %x[decodeNibble]\t; Decode nibbles\n\t"
-      "mov  %[n2], r24\n\t"
+      "mov  %[n2], r24\n\t" // n2 was in Result1Reg
 
       "mov  r24, " Result2Reg "\n\t"
       "call %x[decodeNibble]\t; Decode nibbles\n\t"
-      "mov  %[n3], r24\n\t"
+      "mov  %[n3], r24\n\t" // n3 was in Result2Reg
 
       // Let the compiler do the rest
 
@@ -622,7 +628,7 @@ void AVR::DShot::BDShot<Port, Pin, Speed>::ReadBitISR() {
   // Reti if Carry is clear to continue receiving bits
   asm goto("brcc %l[DoneSamplingPin]; Branch to reti if Carry cleared" : : : : DoneSamplingPin);
 
-  asm("; DONE WITH REGISTERS: r30 r31 and Carry\n\t");
+  asm("; DONE WITH REGISTERS: r30 r31 and Carry");
 
   // Jump to the function [MakeResponse::fromResult()] that makes the result the getResponse() caller wants.
   // When it returns, since we've mucked with the call stack, it'll return in place of getResponse().
