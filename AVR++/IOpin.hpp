@@ -20,7 +20,7 @@ class IOpin {
   constexpr static auto PORT = u1(Port);
   constexpr static auto DDR = u1(Port) - 1;
   constexpr static auto PIN = u1(Port) - 2;
-  constexpr static u1 mask = 1 << Pin;
+  constexpr static u1 mask = u1(1 << Pin);
 
   static_assert(Pin <= 8, "AVR has 8-bit IO Ports. '8' is allowed to disable a Pin");
 
