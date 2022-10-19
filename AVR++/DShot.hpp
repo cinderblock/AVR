@@ -129,6 +129,8 @@ enum class SpecialCommand : u1 {
   // Read more: https://brushlesswhoop.com/dshot-and-bidirectional-dshot/#special-commands
 };
 
+// cSpell:ignore tparam dshot
+
 /**
  * Represents the complete packet of data that will be sent to the motor.
  * @tparam Inverted If the CRC calculation is inverted from normal (for Bidirectional DShot)

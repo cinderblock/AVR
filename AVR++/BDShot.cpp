@@ -19,6 +19,14 @@
 // Yes, we're including the cpp
 #include "DShot.cpp"
 
+// cSpell:ignore datasheet
+// cSpell:ignore eeep
+// cSpell:ignore TCCR TIMSK TIFR TCNT OCRA COMPA vect
+// cSpell:ignore SREG EIMSK PCMSK PCICR UCSR RXCIE TXCIE UDRIE USBCON VBUSTE UDIEN UEIENX SPMCSR SPMIE ACSR ACIE SPCR
+// cSpell:ignore SPIE EECR ADCSRA ADIE ADSC ADIF TWCR TWIE TWINT FPIE WDTCSR WDIE WDIF
+// cSpell:ignore subi breq sbic rjmp
+// cSpell:ignore reti brcc ijmp
+
 template <AVR::Ports Port, int Pin, AVR::DShot::Speeds Speed>
 void AVR::DShot::BDShot<Port, Pin, Speed>::init() {
   using Basic::u1;

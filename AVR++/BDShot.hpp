@@ -95,6 +95,8 @@
 
 #include "DShot.hpp"
 
+// cSpell:ignore GPIO
+
 namespace AVR {
 namespace DShot {
 using namespace AVR;
