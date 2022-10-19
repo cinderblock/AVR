@@ -21,3 +21,9 @@ template <typename In, typename Out>
 inline constexpr Out map(In in, In inA, Out outA, In inB = 0, Out outB = 0) {
   return (in - inA) * (outB - outA) / (inB - inA) + outA;
 }
+
+constexpr bool equal(char const *a, char const *b) {
+  while (*a || *b)
+    if (*a++ != *b++) return false;
+  return true;
+}

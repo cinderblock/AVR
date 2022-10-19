@@ -13,6 +13,8 @@
  */
 
 #include "BDShot.hpp"
+#include "Const.hpp"
+#include "Core.hpp"
 #include "GCR.hpp"
 #include <avr/interrupt.h>
 
@@ -125,72 +127,22 @@ void AVR::DShot::BDShot<Port, Pin, Speed>::init() {
 #define Result1Reg "r19"
 #define Result2Reg "r20"
 
-constexpr bool const_string_equal(char const *a, char const *b) {
-  while (*a || *b)
-    if (*a++ != *b++) return false;
-  return true;
-}
+static_assert(!equal(Result0Reg, Result1Reg), "Result0Reg must not be equal to Result1Reg");
+static_assert(!equal(Result1Reg, Result2Reg), "Result1Reg must not be equal to Result2Reg");
+static_assert(!equal(Result2Reg, Result0Reg), "Result2Reg must not be equal to Result0Reg");
 
-static_assert(!const_string_equal(Result0Reg, Result1Reg), "Result0Reg must not be equal to Result1Reg");
-static_assert(!const_string_equal(Result1Reg, Result2Reg), "Result1Reg must not be equal to Result2Reg");
-static_assert(!const_string_equal(Result2Reg, Result0Reg), "Result2Reg must not be equal to Result0Reg");
+#define CheckRegister(n)                                                                                               \
+  static_assert(!equal(Result##n##Reg, "r0"), "Result" #n "Reg must not be __tmp_reg__");                              \
+  static_assert(!equal(Result##n##Reg, "r1"), "Result" #n "Reg must not be __zero_reg__");                             \
+  static_assert(!equal(Result##n##Reg, "r30"), "Result" #n "Reg must not be Z register");                              \
+  static_assert(!equal(Result##n##Reg, "r31"), "Result" #n "Reg must not be Z register");                              \
+  static_assert(!equal(Result##n##Reg, "r24"), "Result" #n "Reg must not be a register that GCC uses");
 
-static_assert(!const_string_equal(Result0Reg, "r0"), "Result0Reg must not be __tmp_reg__");
-static_assert(!const_string_equal(Result0Reg, "r1"), "Result0Reg must not be __zero_reg__");
-static_assert(!const_string_equal(Result0Reg, "r24"), "Result0Reg must not be A register that GCC uses");
-static_assert(!const_string_equal(Result0Reg, "r30"), "Result0Reg must not be Z register");
-static_assert(!const_string_equal(Result0Reg, "r31"), "Result0Reg must not be Z register");
+CheckRegister(0);
+CheckRegister(1);
+CheckRegister(2);
 
-static_assert(!const_string_equal(Result1Reg, "r0"), "Result1Reg must not be __tmp_reg__");
-static_assert(!const_string_equal(Result1Reg, "r1"), "Result1Reg must not be __zero_reg__");
-static_assert(!const_string_equal(Result1Reg, "r24"), "Result1Reg must not be A register that GCC uses");
-static_assert(!const_string_equal(Result1Reg, "r30"), "Result1Reg must not be Z register");
-static_assert(!const_string_equal(Result1Reg, "r31"), "Result1Reg must not be Z register");
-
-static_assert(!const_string_equal(Result2Reg, "r0"), "Result2Reg must not be __tmp_reg__");
-static_assert(!const_string_equal(Result2Reg, "r1"), "Result2Reg must not be __zero_reg__");
-static_assert(!const_string_equal(Result2Reg, "r24"), "Result2Reg must not be A register that GCC uses");
-static_assert(!const_string_equal(Result2Reg, "r30"), "Result2Reg must not be Z register");
-static_assert(!const_string_equal(Result2Reg, "r31"), "Result2Reg must not be Z register");
-
-/**
- * @brief Set the Z register to the desired location
- *
- * @param z A pointer to the location to jump to
- */
-inline static void setZ(void *z) {
-  asm("; setZ\n\t"
-      "ldi r30, lo8(%x[function])\n\t"
-      "ldi r31, hi8(%x[function])\n\t"
-      : // No outputs
-      : [function] "p"(z)
-      : "r30", "r31");
-}
-template <typename T>
-inline static void setZ(T (*z)()) {
-  setZ((void *)z);
-}
-
-namespace AVR {
-namespace Core {
-namespace Ticks {
-namespace Hardware {
-constexpr unsigned ISR = 5;
-} // namespace Hardware
-namespace Instruction {
-constexpr unsigned Skip1Word = 2;
-constexpr unsigned Skip2Words = 3;
-constexpr unsigned LoaDImediate = 1;
-constexpr unsigned Out = 1;
-constexpr unsigned Branch = 2;
-constexpr unsigned Jmp = 3;
-constexpr unsigned IJmp = 2;
-constexpr unsigned RJmp = 2;
-constexpr unsigned RetI = 5; // Or is it 4?
-} // namespace Instruction
-} // namespace Ticks
-} // namespace Core
-} // namespace AVR
+#undef CheckRegister
 
 template <AVR::Ports Port, int Pin, AVR::DShot::Speeds Speed>
 AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
@@ -263,6 +215,8 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
    */
   // clang-format on
 
+  using namespace AVR::DShot::BDShotConfig;
+
   // These are probably defunct
   static_assert(Periods::delayPeriodTicks == 43, "delayPeriodTicks is not what we expect!");
   static_assert(Periods::delayHalfPeriodTicks == 21, "delayHalfPeriodTicks is not what we expect!");
@@ -297,8 +251,6 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
       AVR::Core::Ticks::Instruction::IJmp +  // Our jmp to Z
       BDShotConfig::Debug::EmitPulseAtSample // Pin toggle adds a clock cycle
       ;
-
-  using namespace AVR::DShot::BDShotConfig;
 
   /**
    * Number of ticks it takes the initial spin loop to check for the initial high-to-low transition.
@@ -437,7 +389,7 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
   BDShotTimer::clearOverflowFlag();
 
   // The magic that lets this work on *any* pin
-  setZ(&ReadBitISR);
+  AVR::Core::setZ(&ReadBitISR);
   // Just make sure nothing else uses the Z registers locally (with a hope and educated guesses)
 
   // Use a set bit in result to indicate we've gotten all the bits.
@@ -514,7 +466,7 @@ static AVR::DShot::Response fromResult() {
 
   // All done!
 
-  BDShotTimer::disableOverflowInterrupt();
+  AVR::DShot::BDShotTimer::disableOverflowInterrupt();
 
   /**
    * Here is where we need the "magic" to happen.
