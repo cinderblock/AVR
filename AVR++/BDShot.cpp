@@ -27,21 +27,15 @@
 // cSpell:ignore subi breq sbic rjmp
 // cSpell:ignore reti brcc ijmp
 
-template <AVR::Ports Port, int Pin, AVR::DShot::Speeds Speed>
-void AVR::DShot::BDShot<Port, Pin, Speed>::init() {
-  using Basic::u1;
-
-  if (Parent::IO::isHigh()) {
-    // Output needs to be low long enough to get out of bootloader and start main program
-    Parent::IO::clr();
-    Parent::IO::output();
-
-    // TODO: This is a long delay. Allow other things to happen while we wait.
-    _delay_ms(BDShotConfig::exitBootloaderDelay);
-  }
+namespace AVR {
+namespace DShot {
+namespace BDShotTimer {
+// Set the top of the timer
+static inline void init(u1 period) {
+  using namespace AVR::DShot::BDShotConfig;
 
   // Alternate timer mode that is needed to use the OCR debug outputs
-  constexpr bool useFastPWM = BDShotConfig::Debug::OutputOCR;
+  constexpr bool useFastPWM = Debug::OutputOCR;
 
   // CTC Mode (clear counter at OCR0A)
   u1 wgm = 0b010;
@@ -55,13 +49,13 @@ void AVR::DShot::BDShot<Port, Pin, Speed>::init() {
 
   asm("; Setup Timer Output Compare Modules");
 
-  // Sample on overflows
-  OCR0A = Periods::delayPeriodTicks - 1;
+  // Set TOP value
+  OCR0A = period - 1;
 
-  if (BDShotConfig::Debug::OutputOCR) {
-    static_assert(BDShotConfig::Debug::OutputOCR <= useFastPWM, "DebugUseOCR requires useFastPWM");
+  if (Debug::OutputOCR) {
+    static_assert(Debug::OutputOCR <= useFastPWM, "DebugUseOCR requires useFastPWM");
 
-    OCR0B = Periods::delayHalfPeriodTicks;
+    OCR0B = period / 2;
 
     com0A = 0b01; // Toggle on compare match
     // com0B = 0b01; // Toggle on compare match
@@ -77,8 +71,6 @@ void AVR::DShot::BDShot<Port, Pin, Speed>::init() {
 #endif
   }
 
-  asm("; Init BDShot");
-
   // TODO: Make timer configurable?
 
   // Set up and start timer that we use internally
@@ -86,6 +78,37 @@ void AVR::DShot::BDShot<Port, Pin, Speed>::init() {
   TCCR0A = (com0A & 0b11) << COM0A0 | (com0B & 0b11) << COM0B0 | (wgm & 0b11);
   // Start the timer
   TCCR0B = ((wgm >> 2) & 1) << WGM02 | (prescaler & 0b111) << CS00;
+}
+
+// Set the timer counter to the value
+static inline void setCounter(u1 value) { TCNT0 = value; }
+
+static constexpr auto BitOverflowFlagMask = 1 << OCF0A;
+
+static inline void enableOverflowInterrupt() { TIMSK0 = BitOverflowFlagMask; }
+static inline void disableOverflowInterrupt() { TIMSK0 = 0; }
+static inline void clearOverflowFlag() { TIFR0 |= BitOverflowFlagMask; }
+static inline bool hasOverflowFlagged() { return TIFR0 & BitOverflowFlagMask; }
+} // namespace BDShotTimer
+} // namespace DShot
+} // namespace AVR
+
+template <AVR::Ports Port, int Pin, AVR::DShot::Speeds Speed>
+void AVR::DShot::BDShot<Port, Pin, Speed>::init() {
+  using Basic::u1;
+
+  if (Parent::IO::isHigh()) {
+    // Output needs to be low long enough to get out of bootloader and start main program
+    Parent::IO::clr();
+    Parent::IO::output();
+
+    // TODO: This is a long delay. Allow other things to happen while we wait.
+    _delay_ms(BDShotConfig::exitBootloaderDelay);
+  }
+
+  BDShotTimer::init(Periods::delayPeriodTicks);
+
+  asm("; Init BDShot");
 
   // Set output high
   Parent::IO::set();
@@ -385,22 +408,22 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
   static_assert(Periods::delayPeriodTicks > adjustInitialTicks, "delayPeriodTicks is too small");
   static_assert(Periods::delayPeriodTicks < 200, "delayPeriodTicks is too large");
 
-  constexpr auto BitOverflowFlagMask = 1 << OCF0A;
-
   asm("; Waiting for first transition");
 
   // Wait for initial high-to-low transition, or timeout while waiting
   while (isHigh() || (BDShotConfig::useDebounce && isHigh())) {
     if (ResetWatchdog::WaitingFirstTransitionFast) asm("wdr");
 
+    if (!BDShotTimer::hasOverflowFlagged()) continue;
     // If timer overflows, see if we've overflowed enough to know we're not getting a response.
-    if (!(TIFR0 & BitOverflowFlagMask)) continue;
 
-    // Timeout waiting for response
-    if (overflowsWhileWaiting++ > responseTimeoutOverflows) return AVR::DShot::Response::Error::ResponseTimeout;
+    if (overflowsWhileWaiting++ > responseTimeoutOverflows) {
+      // Timeout waiting for response
+      return AVR::DShot::Response::Error::ResponseTimeout;
+    }
 
     // Clear the flag so we can wait for the next overflow
-    TIFR0 |= BitOverflowFlagMask;
+    BDShotTimer::clearOverflowFlag();
 
     if (ResetWatchdog::WaitingFirstTransitionTimerOverflow) asm("wdr");
   }
@@ -410,10 +433,8 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
 
   // Set timer so that it matches trigger register in 1.5 bit periods
   asm("; Initial Ticks");
-  TCNT0 = timerCounterValueInitial;
-
-  // Clear flag by setting it
-  TIFR0 |= BitOverflowFlagMask;
+  BDShotTimer::setCounter(timerCounterValueInitial);
+  BDShotTimer::clearOverflowFlag();
 
   // The magic that lets this work on *any* pin
   setZ(&ReadBitISR);
@@ -444,8 +465,7 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
 
   asm("; DON'T MESS WITH REGISTERS: " Result0Reg " " Result1Reg " " Result2Reg " r30 r31 or Carry\n\t");
 
-  // Enable interrupt
-  TIMSK0 = BitOverflowFlagMask;
+  BDShotTimer::enableOverflowInterrupt();
 
   register u1 const syncValue = timerCounterValueSync;
 
@@ -457,7 +477,7 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
       if (Debug::EmitPulsesAtIdle) Debug::Pin::tgl();
       asm("; Ultra Fast Loop. Waiting for transition to high.");
     } while (!isHigh() || (BDShotConfig::useDebounce && !isHigh()));
-    TCNT0 = syncValue;
+    BDShotTimer::setCounter(syncValue);
     if (Debug::EmitPulseAtSync) {
       Debug::Pin::on();
       Debug::Pin::off();
@@ -466,7 +486,7 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
       if (Debug::EmitPulsesAtIdle) Debug::Pin::tgl();
       asm("; Ultra Fast Loop. Waiting for transition to low.");
     } while (isHigh() || (BDShotConfig::useDebounce && isHigh()));
-    TCNT0 = syncValue;
+    BDShotTimer::setCounter(syncValue);
     if (Debug::EmitPulseAtSync) {
       Debug::Pin::on();
       Debug::Pin::off();
@@ -494,8 +514,7 @@ static AVR::DShot::Response fromResult() {
 
   // All done!
 
-  // Disable interrupt
-  TIMSK0 = 0;
+  BDShotTimer::disableOverflowInterrupt();
 
   /**
    * Here is where we need the "magic" to happen.
@@ -710,6 +729,8 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::sendCommand(Command<t
 
     savedTIMSK1 = TIMSK1;
     TIMSK1 = 0;
+
+    // TODO: Handle if we make timer selection configurable
 
     savedEIMSK = EIMSK;
     EIMSK = 0;
