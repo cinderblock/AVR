@@ -160,7 +160,7 @@ namespace Debug {
 // Use PB6 as an extra GPIO to verify timing for various parts of the code
 using Pin = AVR::Output<AVR::Ports::B, 8>;
 
-constexpr bool EmitPulseAtSample = false;
+constexpr bool EmitPulseAtISR = false;
 constexpr bool EmitPulsesAtIdle = false;
 constexpr bool EmitPulseAtSync = false;
 } // namespace Debug

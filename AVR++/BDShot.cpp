@@ -32,10 +32,11 @@ constexpr static bool AssemblyComments = true;
 namespace AVR {
 namespace DShot {
 namespace BDShotTimer {
-
+namespace {
 u1 const prescaler = 1;
-
 static constexpr auto BitOverflowFlagMask = 1 << OCF0A;
+} // namespace
+
 static inline void setCounter(u1 value) {
   if (AssemblyComments) asm("; setCounter(u1 value)");
   TCNT0 = value;
@@ -234,7 +235,7 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
    */
   // clang-format on
 
-  using namespace AVR::DShot::BDShotConfig;
+  using namespace BDShotConfig;
 
   // These are probably defunct
   static_assert(Periods::delayPeriodTicks == 43, "delayPeriodTicks is not what we expect!");
@@ -246,7 +247,7 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
   static constexpr unsigned expectedNibbles = 4;
   static constexpr Basic::u1 ExpectedBits = expectedNibbles * GCR::inBits;
 
-  constexpr unsigned responseTimeoutTicks = (((long long)(F_CPU)) * AVR::DShot::BDShotConfig::responseTimeout) / 1e6;
+  constexpr unsigned responseTimeoutTicks = (((long long)(F_CPU)) * responseTimeout) / 1e6;
 
   constexpr unsigned responseTimeoutOverflows = responseTimeoutTicks >> 8;
 
@@ -259,10 +260,10 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
    * - Other instructions in the ISR before sampling the pin into a temp register
    */
   constexpr unsigned ticksFromOverflowToISRSample =
-      AVR::Core::Ticks::Hardware::ISR +        // ISR time
-      AVR::Core::Ticks::Instruction::Jmp +     // Initial jmp table, could be eliminated with a custom .init table
-      BDShotConfig::Debug::EmitPulseAtSample + // Pin toggle adds a clock cycle
-      AVR::Core::Ticks::Instruction::IJmp +    // Our jmp to Z
+      AVR::Core::Ticks::Hardware::ISR +     // ISR time
+      AVR::Core::Ticks::Instruction::Jmp +  // Initial jmp table, could be eliminated with a custom .init table
+      Debug::EmitPulseAtISR +               // Pin toggle adds a clock cycle
+      AVR::Core::Ticks::Instruction::IJmp + // Our jmp to Z
       0;
 
   /**
@@ -316,12 +317,12 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
    * @note These lists are generated from looking at the generated assembly for these functions.
    */
   constexpr unsigned ticksFromTransitionToInitialTimerSync =
-      AVR::Core::Ticks::Instruction::Skip1Word * BDShotConfig::useDebounce + // Debounce compensation
-      1 +                                           // Check Pin  with `sbis`, it's low, don't skip
-      AVR::Core::Ticks::Instruction::RJmp +         // Jump to Initial Ticks
-      ResetWatchdog::ReceivedFirstTransition +      // WDR
-      AVR::Core::Ticks::Instruction::LoaDImediate + // Set register to immediate
-      AVR::Core::Ticks::Instruction::Out +          // Set timer counter from register
+      AVR::Core::Ticks::Instruction::Skip1Word * useDebounce + // Debounce compensation
+      1 +                                                      // Check Pin  with `sbis`, it's low, don't skip
+      AVR::Core::Ticks::Instruction::RJmp +                    // Jump to Initial Ticks
+      ResetWatchdog::ReceivedFirstTransition +                 // WDR
+      AVR::Core::Ticks::Instruction::LoaDImediate +            // Set register to immediate
+      AVR::Core::Ticks::Instruction::Out +                     // Set timer counter from register
       0;
 
   /**
@@ -341,9 +342,9 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
    * @note Part of the phase adjustment of reading bits on timer overflow
    */
   constexpr unsigned ticksFromTransitionToTimerSync =
-      AVR::Core::Ticks::Instruction::Skip1Word * BDShotConfig::useDebounce + // Debounce compensation
-      AVR::Core::Ticks::Instruction::Skip1Word +                             // Read + skip rjmp for loop[]
-      AVR::Core::Ticks::Instruction::Out +                                   // Set timer counter from register
+      AVR::Core::Ticks::Instruction::Skip1Word * useDebounce + // Debounce compensation
+      AVR::Core::Ticks::Instruction::Skip1Word +               // Read + skip rjmp for loop[]
+      AVR::Core::Ticks::Instruction::Out +                     // Set timer counter from register
       0;
 
   // Larger numbers will make the samples happen sooner
@@ -385,7 +386,7 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
   if (AssemblyComments) asm("; Waiting for first transition");
 
   // Wait for initial high-to-low transition, or timeout while waiting
-  while (isHigh() || (BDShotConfig::useDebounce && isHigh())) {
+  while (isHigh() || (useDebounce && isHigh())) {
     if (ResetWatchdog::WaitingFirstTransitionFast) asm("wdr");
 
     if (!BDShotTimer::hasOverflowFlagged()) continue;
@@ -413,7 +414,7 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
   BDShotTimer::setShortTimeout();
   BDShotTimer::clearOverflowFlag();
 
-  if (AVR::DShot::BDShotConfig::AssemblyOptimizations::saveZRegister) {
+  if (AssemblyOptimizations::saveZRegister) {
     // Save the contents of the call-saved result registers
     asm("push r30");
     asm("push r31");
@@ -427,7 +428,7 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
   // Also consider building with "-S" to see the generated assembly and inspect it manually.
   // It will include many comments :)
 
-  if (AVR::DShot::BDShotConfig::AssemblyOptimizations::saveResultRegisters) {
+  if (AssemblyOptimizations::saveResultRegisters) {
     // Save the contents of the call-saved result registers
     asm("push " ResultReg0);
     asm("push " ResultReg1);
@@ -462,7 +463,7 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
     do {
       if (Debug::EmitPulsesAtIdle) Debug::Pin::tgl();
       if (AssemblyComments) asm("; Ultra Fast Loop. Waiting for transition to high.");
-    } while (!isHigh() || (BDShotConfig::useDebounce && !isHigh()));
+    } while (!isHigh() || (useDebounce && !isHigh()));
 
     BDShotTimer::setCounter(timerCounterValueSync);
 
@@ -476,7 +477,7 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
     do {
       if (Debug::EmitPulsesAtIdle) Debug::Pin::tgl();
       if (AssemblyComments) asm("; Ultra Fast Loop. Waiting for transition to low.");
-    } while (isHigh() || (BDShotConfig::useDebounce && isHigh()));
+    } while (isHigh() || (useDebounce && isHigh()));
 
     BDShotTimer::setCounter(timerCounterValueSync);
 
@@ -503,7 +504,8 @@ static void interruptReturn() __attribute__((naked));
 void interruptReturn() { asm("reti"); }
 
 static AVR::DShot::Response bitByBit() {
-  using namespace AVR::DShot::BDShotConfig;
+  using namespace AVR::DShot;
+  using namespace BDShotConfig;
 
   if (ResetWatchdog::SampledBit) asm("wdr");
 
@@ -525,9 +527,9 @@ static AVR::DShot::Response bitByBit() {
 
   if (AssemblyComments) asm("; DONE WITH REGISTERS: r30 r31 and Carry");
 
-  AVR::DShot::BDShotTimer::stop();
+  BDShotTimer::stop();
 
-  AVR::DShot::BDShotTimer::disableOverflowInterrupt();
+  BDShotTimer::disableOverflowInterrupt();
 
   /**
    * Here is where we need the "magic" to happen.
@@ -548,7 +550,7 @@ static AVR::DShot::Response bitByBit() {
   asm("pop r24; Break out of Ultra Fast Loop when we reti");
   asm("pop r24; Break out of Ultra Fast Loop when we reti");
 
-  if (AVR::DShot::BDShotConfig::ResetWatchdog::BeforeProcessing) asm("wdr");
+  if (ResetWatchdog::BeforeProcessing) asm("wdr");
 
   Basic::u1 n0, n1, n2, n3;
 
@@ -614,20 +616,18 @@ static AVR::DShot::Response bitByBit() {
 
   if (AssemblyComments) asm("; DONE WITH REGISTERS: " ResultReg0 " " ResultReg1 " " ResultReg2);
 
-  if (AVR::DShot::BDShotConfig::AssemblyOptimizations::saveResultRegisters) {
+  if (AssemblyOptimizations::saveResultRegisters) {
     // Restore the contents of the call-saved result registers
     asm("pop " ResultReg2 ::: ResultReg2);
     asm("pop " ResultReg1 ::: ResultReg1);
     asm("pop " ResultReg0 ::: ResultReg0);
   }
 
-  if (AVR::DShot::BDShotConfig::AssemblyOptimizations::saveZRegister) {
+  if (AssemblyOptimizations::saveZRegister) {
     // Restore the contents of the call-saved result registers
     asm("pop r31" ::: "r31");
     asm("pop r30" ::: "r30");
   }
-
-  using AVR::DShot::Response;
 
   // Yes, this order is correct. They are numbered by significance, and MSB was first.
   if (n3 == 0xff) return Response::Error::BadDecodeFirstNibble;
@@ -696,9 +696,9 @@ void AVR::DShot::BDShot<Port, Pin, Speed>::ReadBitISR() {
 ISR(TIMER0_COMPA_vect, ISR_NAKED) {
   if (AssemblyComments) asm("; Start of TIMER0_COMPA_vect");
 
-  using AVR::DShot::BDShotConfig::Debug::EmitPulseAtSample;
+  using AVR::DShot::BDShotConfig::Debug::EmitPulseAtISR;
   using AVR::DShot::BDShotConfig::Debug::Pin;
-  if (EmitPulseAtSample) Pin::on();
+  if (EmitPulseAtISR) Pin::on();
 
   // If we got *extra* fancy, we could save 3 clock cycles (and a word of flash) by putting this "ijmp" directly in the
   // interrupt table. But this doesn't improve our resolution in any way.
