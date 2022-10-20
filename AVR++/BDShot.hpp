@@ -301,6 +301,7 @@ public:
   static Response sendCommand(Command<true> c);
 
   static void init();
+  static void exitBootloader();
 };
 
 } // namespace DShot

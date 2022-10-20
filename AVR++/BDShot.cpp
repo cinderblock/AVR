@@ -110,10 +110,7 @@ static inline void init(u1 shortPeriod) {
 } // namespace AVR
 
 template <AVR::Ports Port, int Pin, AVR::DShot::Speeds Speed>
-void AVR::DShot::BDShot<Port, Pin, Speed>::init() {
-  BDShotTimer::init(Periods::delayPeriodTicks);
-
-  if (Parent::IO::isHigh()) {
+void AVR::DShot::BDShot<Port, Pin, Speed>::exitBootloader() {
     asm("; Waiting for bootloader exit");
 
     // Output needs to be low long enough to get out of bootloader and start main program
@@ -127,7 +124,11 @@ void AVR::DShot::BDShot<Port, Pin, Speed>::init() {
 
     // Set output high
     Parent::IO::set();
-  }
+}
+
+template <AVR::Ports Port, int Pin, AVR::DShot::Speeds Speed>
+void AVR::DShot::BDShot<Port, Pin, Speed>::init() {
+  BDShotTimer::init(Periods::delayPeriodTicks);
 
   asm("; Init BDShot");
 
