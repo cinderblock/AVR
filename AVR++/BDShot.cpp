@@ -177,16 +177,21 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
    * Timer overflows mean it's time to sample a bit.
    * We can service this safely since we expect no transitions mid bit.
    *
+   * Notably, we don't use interrupts in the case of the initial waiting period because the recovery time from the
+   * interrupt would hurt our initial clock recovery too much.
+   *
    * Pseudo code:
    * - Wait for initial high-to-low transition
    *   - Timeout if no response in >50us
    * - Start timer with overflow in 1.5 bit periods
-   *   - We're skipping the first bit because it's a start bit that is *always* 0
+   *   - We're skipping the first bit because it's *always* 0
    * - Enable our Timer Overflow Interrupt
    * - Fast Loop waiting for Transition
-   *   - On Transition, Set new timer value
+   *   - On Transition
+   *     - Set new timer value (resync)
    * - On Timer Overflow Interrupt
-   *   - Sample & store bit
+   *   - Sample Pin State
+   *   - Store Pin State
    *   - If 20 bits received
    *     - Parse and return response
    *
@@ -712,96 +717,8 @@ ISR(TIMER0_COMPA_vect, ISR_NAKED) {
   asm("ijmp ; Jump to Z register, set in getResponse() with setZ()");
 }
 
-static constexpr bool HandleInterrupts = 0;
-static constexpr bool HandleInterruptsAlwaysOn = 0;
-
 template <AVR::Ports Port, int Pin, AVR::DShot::Speeds Speed>
 AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::sendCommand(Command<true> c) {
-
-  u1 savedSREG;
-
-#ifdef __AVR_ATmega32U4__
-  u1 savedTIMSK4;
-  u1 savedTIMSK3;
-  u1 savedTIMSK1;
-  u1 savedEIMSK;
-  u1 savedPCMSK0; // Covers PCICR as well
-  u1 savedUCSR1B; // Just RXCIE1 TXCIE1 UDRIE1
-  u1 savedUSBCON; // Just VBUSTE
-  u1 savedUDIEN;
-  u1 savedUEIENX;
-  u1 savedSPMCSR; // Just SPMIE
-  u1 savedACSR;   // Just ACIE clear ACI
-  u1 savedSPCR;   // Just SPIE
-  u1 savedEECR;   // Just EERIE
-  u1 savedADCSRA; // Just ADIE clear ADSC ADIF
-  u1 savedTWCR;   // Just TWIE clear TWINT
-  u1 savedTCCR4D; // Just FPIE4 clear FPF4
-  u1 savedWDTCSR; // Just WDIE clear WDIF
-
-  if (HandleInterrupts) {
-
-    savedTIMSK4 = TIMSK4;
-    TIMSK4 = 0;
-
-    savedTIMSK3 = TIMSK3;
-    TIMSK3 = 0;
-
-    savedTIMSK1 = TIMSK1;
-    TIMSK1 = 0;
-
-    // TODO: Handle if we make timer selection configurable
-
-    savedEIMSK = EIMSK;
-    EIMSK = 0;
-
-    savedPCMSK0 = PCMSK0;
-    PCMSK0 = 0;
-
-    savedUCSR1B = UCSR1B;
-    UCSR1B &= ~(_BV(RXCIE1) | _BV(TXCIE1) | _BV(UDRIE1));
-
-    savedUSBCON = USBCON;
-    USBCON &= ~_BV(VBUSTE);
-
-    savedUDIEN = UDIEN;
-    UDIEN = 0;
-
-    savedUEIENX = UEIENX;
-    UEIENX = 0;
-
-    savedSPMCSR = SPMCSR;
-    SPMCSR &= ~_BV(SPMIE);
-
-    savedACSR = ACSR;
-    ACSR &= ~_BV(ACIE);
-    savedACSR &= ~_BV(ACI);
-
-    savedSPCR = SPCR;
-    SPCR &= ~_BV(SPIE);
-
-    savedEECR = EECR;
-    EECR &= ~_BV(EERIE);
-
-    savedADCSRA = ADCSRA;
-    ADCSRA &= ~_BV(ADIE);
-    savedADCSRA &= ~(_BV(ADIF) | _BV(ADSC));
-
-    savedTWCR = TWCR;
-    TWCR &= ~_BV(TWIE);
-    savedTWCR &= ~_BV(TWINT);
-
-    savedTCCR4D = TCCR4D;
-    TCCR4D &= ~_BV(FPIE4);
-    savedTCCR4D &= ~_BV(FPF4);
-
-    savedWDTCSR = WDTCSR;
-    WDTCSR &= ~_BV(WDIE);
-    savedWDTCSR &= ~_BV(WDIF);
-  }
-#else
-  static_assert(!HandleInterrupts, "Not yet implemented");
-#endif
 
   // Set output mode only while sending command
   Parent::output();
@@ -815,43 +732,11 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::sendCommand(Command<t
 
   // getResponse() requires interrupts to be enabled globally
   // but also requires all other interrupts to be disabled.
-  // It also always leaves interrupts disabled globally.
-
-  if (HandleInterrupts && !HandleInterruptsAlwaysOn) {
-    savedSREG = SREG;
-
-    asm("sei");
-  }
+  // It also always leaves interrupts disabled globally, so we fix that after.
 
   const auto r = getResponse();
 
-  if (HandleInterrupts) {
-    SREG = savedSREG;
-  } else if (HandleInterruptsAlwaysOn) {
-    asm("sei");
-  }
-
-#ifdef __AVR_ATmega32U4__
-  if (HandleInterrupts) {
-    WDTCSR = savedWDTCSR;
-    TCCR4D = savedTCCR4D;
-    TWCR = savedTWCR;
-    ADCSRA = savedADCSRA;
-    EECR = savedEECR;
-    SPCR = savedSPCR;
-    ACSR = savedACSR;
-    SPMCSR = savedSPMCSR;
-    UEIENX = savedUEIENX;
-    UDIEN = savedUDIEN;
-    USBCON = savedUSBCON;
-    UCSR1B = savedUCSR1B;
-    PCMSK0 = savedPCMSK0;
-    EIMSK = savedEIMSK;
-    TIMSK1 = savedTIMSK1;
-    TIMSK3 = savedTIMSK3;
-    TIMSK4 = savedTIMSK4;
-  }
-#endif
+  asm("sei");
 
   return r;
 }

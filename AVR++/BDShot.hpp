@@ -16,6 +16,8 @@
  * While this implementation is a "classes", it is not intended to be instantiated.
  * `using` is the preferred method of access.
  *
+ * Watch out for the ESC detecting a long "high" state (BDShot idles high) as a command to enter the bootloader.
+ *
  * Simplified API:
  *
  * template <AVR::Ports Port, int Pin, AVR::DShot::Speeds Speed = [150/300]>
@@ -38,20 +40,20 @@
  *
  * int main() {
  *   ESC::init();
- *   sei(); // Implementation requires interrupts to be enabled, but all other interrupts must be disabled individually
+ *
+ *   // Implementation requires interrupts to be enabled, but all other interrupts must be disabled individually
+ *   sei();
+ *
  *   while (true) {
+ *     // Ensure regular communication with ESC to prevent launching bootloader
  *     _delay_ms(1);
  *
  *     // Disable other interrupts individually
  *     // Disable USART interrupts, for instance
  *     UCSR0B &= 0b0001'1111;
  *
- *     // Reset watchdog before sending command
- *     WDT::tick();
- *
- *     auto res = ESC::sendCommand(0.5); // 250us maximum execution time for DSHOT150
- *
- *     sei(); // Implementation will leave interrupts disabled unless you change HandleInterrupts in BDShot.cpp
+ *     // 250us maximum execution time for DSHOT150
+ *     auto res = ESC::sendCommand(0.5); // See DShot.hpp for other Command constructors
  *
  *     // Reenable other interrupts individually
  *     UCSR0B |= (1 << RXCIE0) | (0 << TXCIE0) | (1 << UDRIE0);

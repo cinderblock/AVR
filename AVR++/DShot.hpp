@@ -38,7 +38,11 @@
  *
  * int main() {
  *   ESC::init();
- *   ESC::sendCommand(0.5);
+ *   ESC::sendCommand(0.5); // Set to 50% throttle
+ *   ESC::sendCommand(1000); // Set to 1000 throttle, valid range: 0 to 1999
+ *
+ *   ESC::sendCommand(AVR::DShot::SpecialCommand::Beep1);
+ *   _delay_ms(500); // Must wait before sending another.
  * }
  * ```
  *
