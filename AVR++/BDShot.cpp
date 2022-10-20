@@ -94,8 +94,6 @@ static inline void stop() {
 }
 
 static inline void init(u1 shortPeriod) {
-  using namespace AVR::DShot::BDShotConfig;
-
   if (AssemblyComments) asm("; Setup Timer");
 
   // Set TOP value
@@ -103,7 +101,6 @@ static inline void init(u1 shortPeriod) {
 
   // Set up timer that we use internally
   TIMSK0 = 0; // Ensure timer interrupts are disabled
-  TCCR0A = 0;
 
   stop();
 }
