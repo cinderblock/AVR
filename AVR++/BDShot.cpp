@@ -619,7 +619,7 @@ static AVR::DShot::Response fromResult() {
 }
 } // namespace MakeResponse
 
-inline static void HandleBit() __attribute__((naked));
+static void HandleBit() __attribute__((naked));
 
 template <AVR::Ports Port, int Pin, AVR::DShot::Speeds Speed>
 void AVR::DShot::BDShot<Port, Pin, Speed>::ReadBitISR() {
