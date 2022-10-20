@@ -614,6 +614,8 @@ static AVR::DShot::Response fromResult() {
 }
 } // namespace MakeResponse
 
+inline static void HandleBit() __attribute__((naked));
+
 template <AVR::Ports Port, int Pin, AVR::DShot::Speeds Speed>
 void AVR::DShot::BDShot<Port, Pin, Speed>::ReadBitISR() {
   /**
@@ -644,15 +646,24 @@ void AVR::DShot::BDShot<Port, Pin, Speed>::ReadBitISR() {
 
       // If input was low, carry is still low.
       // If was high, carry is now high.
+
+      // We could include the `rol` instructions here to save a jump when using a single pin.
+      // This however saves 10 bytes of flash per pin when using more than 1.
+      "rjmp %x[HandleBit]\n\t"
       :
       : [PIN] "M"(unsigned(Port) // Convert Port to integer
                   - __SFR_OFFSET // Offset because of AVR internal workings
                   - 2            // Distance from PINx to PORTx
                   ),
-        [N] "I"(Pin) // The pin number
+        [HandleBit] "p"(&HandleBit), //
+        [N] "I"(Pin)                 // The pin number
   );
+}
 
-  if (BDShotConfig::ResetWatchdog::SampledBit) asm("wdr");
+void HandleBit() {
+  using namespace AVR::DShot::BDShotConfig;
+
+  if (ResetWatchdog::SampledBit) asm("wdr");
 
   asm("; Store Carry into Result\n\t"
       "rol " ResultReg0 "\n\t"
@@ -672,7 +683,7 @@ void AVR::DShot::BDShot<Port, Pin, Speed>::ReadBitISR() {
 
   // Jump to the function [MakeResponse::fromResult()] that makes the result the getResponse() caller wants.
   // When it returns, since we've mucked with the call stack, it'll return in place of getResponse().
-  if (BDShotConfig::AssemblyOptimizations::useRelativeJmpAtEndISR) {
+  if (AssemblyOptimizations::useRelativeJmpAtEndISR) {
     asm("rjmp %x[Done]; Jump to MakeResponse::fromResult" : : [Done] "p"(&MakeResponse::fromResult));
   } else {
     asm("jmp  %x[Done]; Jump to MakeResponse::fromResult" : : [Done] "p"(&MakeResponse::fromResult));
