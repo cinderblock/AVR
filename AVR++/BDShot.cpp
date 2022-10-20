@@ -495,8 +495,6 @@ inline static constexpr bool isBadChecksum(Basic::u1 n3, Basic::u1 n2, Basic::u1
   return 0xf ^ n0 ^ n1 ^ n2 ^ n3;
 }
 
-Basic::u1 decodeNibble(Basic::u1 b) { return GCR::decode(b & 0x1f); }
-
 static AVR::DShot::Response fromResult() {
   // All done!
 
@@ -549,23 +547,25 @@ static AVR::DShot::Response fromResult() {
 
       // Now we turn 3 bytes into 4 quintets
 
-      // Layout:                           Result 2 | Result 1 | Result 0|Carry
-      "mov  r24, " /**/ ResultReg0 /**/ "\t;   3333  3222 2211  1110 0000 x\n\t" // n0 is ready, move to r24 for later.
+      // Layout:                              Result 2 | Result 1 | Result 0|Carry
+      "mov  r24, " /**/ ResultReg0 /**/ "\t; ---- 3333  3222 2211  1110 0000 +\n\t" // move n0 to r24 for later
 
-      "rol  " /**/ ResultReg1 /**/ /**/ "\t;   3333  2222 211x  1110 0000 3\n\t"
-      "rol  " ResultReg2 /**/ /**/ /**/ "\t; 3 3333  2222 211x  1110 0000 x\n\t" // n3 is ready in ResultReg2 for later.
+      "rol  " /**/ ResultReg1 /**/ /**/ "\t; ---- 3333  2222 211+  1110 0000 3\n\t"
+      "rol  " ResultReg2 /**/ /**/ /**/ "\t; ---3 3333  2222 211+  1110 0000 -\n\t" // n3 is ready in ResultReg2
 
-      "ror  " /**/ ResultReg1 /**/ /**/ "\t; 3 3333  x222 2211  1110 0000 x\n\t"
-      "ror  " /**/ ResultReg1 /**/ /**/ "\t; 3 3333  xx22 2221  1110 0000 1\n\t"
-      "ror  " /**/ /**/ ResultReg0 /**/ "\t; 3 3333  xx22 2221  1111 0000 0\n\t"
-      "ror  " /**/ ResultReg1 /**/ /**/ "\t; 3 3333  xxx2 2222  1111 0000 1\n\t" // n2 is ready in ResultReg1 for later.
+      "lsr  " /**/ ResultReg1 /**/ /**/ "\t; ---3 3333  -222 2211  1110 0000 +\n\t"
+      "lsr  " /**/ ResultReg1 /**/ /**/ "\t; ---3 3333  --22 2221  1110 0000 1\n\t"
+      "ror  " /**/ /**/ ResultReg0 /**/ "\t; ---3 3333  --22 2221  1111 0000 0\n\t"
+      "lsr  " /**/ ResultReg1 /**/ /**/ "\t; ---3 3333  ---2 2222  1111 0000 1\n\t" // n2 is ready in ResultReg1
 
-      "andi " /**/ /**/ ResultReg0 ",0xf0\t; 3 3333  xxx2 2222  1111 xxxx 1\n\t" // Ensure lower nibble is 0
-      "adc  " /**/ /**/ ResultReg0 ",r1  \t; 3 3333  xxx2 2222  1111 xxx1 x\n\t" // Add carry to lower nibble
-      "swap " /**/ /**/ ResultReg0 /**/ "\t; 3 3333  xxx2 2222  xxx1 1111 x\n\t" // n1 is ready in ResultReg0 for later.
+      "andi " /**/ /**/ ResultReg0 ",0xf0\t; ---3 3333  ---2 2222  1111 ---- 1\n\t" // Ensure lower nibble is 0
+      "adc  " /**/ /**/ ResultReg0 ",r1  \t; ---3 3333  ---2 2222  1111 ---1 -\n\t" // Add carry to lower nibble
+      "swap " /**/ /**/ ResultReg0 /**/ "\t; ---3 3333  ---2 2222  ---1 1111 -\n\t" // n1 is ready in ResultReg0
 
       // Decode the GCR encoded quintets into nibbles
       // We don't need to worry about trash in the upper nibbles because decodeNibble() masks them out
+
+      "andi r24, 0x1f\n\t" // r24 has some of n1 in it still. Mask it out.
 
       "call %x[decodeNibble]\t; Decode nibbles\n\t"
       "mov  %[n0], r24\n\t" // n0 was in r24 already
@@ -585,7 +585,7 @@ static AVR::DShot::Response fromResult() {
       // Let the compiler do the rest
 
       : [n0] "=r"(n0), [n1] "=r"(n1), [n2] "=r"(n2), [n3] "=r"(n3)
-      : [decodeNibble] "p"(&decodeNibble)
+      : [decodeNibble] "p"(&GCR::decode)
       : "r24", ResultReg0, ResultReg1, ResultReg2);
 
   if (AVR::DShot::BDShotConfig::AssemblyOptimizations::saveResultRegisters) {
