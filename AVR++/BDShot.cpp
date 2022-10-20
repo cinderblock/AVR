@@ -103,7 +103,7 @@ static inline void init(u1 shortPeriod) {
   TIMSK0 = 0; // Ensure timer interrupts are disabled
   TCCR0A = 0;
 
-  start();
+  stop();
 }
 } // namespace BDShotTimer
 } // namespace DShot
@@ -370,6 +370,7 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
 
   BDShotTimer::setMaxTimeout();
   BDShotTimer::setCounter(u1(-responseTimeoutTicks));
+  BDShotTimer::start();
 
   u1 overflowsWhileWaiting = responseTimeoutOverflows;
 
@@ -498,6 +499,8 @@ static AVR::DShot::Response fromResult() {
   // All done!
 
   asm("; DONE WITH REGISTERS: r30 r31 and Carry");
+
+  AVR::DShot::BDShotTimer::stop();
 
   AVR::DShot::BDShotTimer::disableOverflowInterrupt();
 
