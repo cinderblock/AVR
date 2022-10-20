@@ -261,7 +261,8 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
    */
   constexpr unsigned ticksFromOverflowToISRSample =
       AVR::Core::Ticks::Hardware::ISR +     // ISR time
-      AVR::Core::Ticks::Instruction::Jmp +  // Initial jmp table, could be eliminated with a custom .init table
+      AVR::Core::Ticks::Instruction::Jmp +  // Initial jmp table, could be eliminated with a custom .init table but as
+                                            // long as it's predictable, do we care?
       Debug::EmitPulseAtISR +               // Pin toggle adds a clock cycle
       AVR::Core::Ticks::Instruction::IJmp + // Our jmp to Z
       0;
