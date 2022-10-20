@@ -548,6 +548,8 @@ static AVR::DShot::Response bitByBit() {
   // Use a register we're about to use for other stuff
   asm("pop r24; Break out of Ultra Fast Loop when we reti");
   asm("pop r24; Break out of Ultra Fast Loop when we reti");
+  // We also need to re-enable interrupts
+  asm("sei");
 
   if (ResetWatchdog::BeforeProcessing) asm("wdr");
 
@@ -636,7 +638,7 @@ static AVR::DShot::Response bitByBit() {
 
   if (isBadChecksum(n3, n2, n1, n0)) return Response::Error::BadChecksum;
 
-  // We've checked the checksum, so we can safely ignore the checksum nibble
+  // Make a response from the 3 nibbles of good data
   return {n3, n2, n1};
 }
 } // namespace MakeResponse
@@ -700,24 +702,15 @@ ISR(TIMER0_COMPA_vect, ISR_NAKED) {
 
 template <AVR::Ports Port, int Pin, AVR::DShot::Speeds Speed>
 AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::sendCommand(Command<true> c) {
-
   // Set output mode only while sending command
   Parent::output();
 
-  // We can't let DShot implementation handle interrupts
+  // We don't need DShot implementation to handle interrupts
   Parent::sendCommand(c, false);
   if (AVR::DShot::BDShotConfig::ResetWatchdog::AfterSend) asm("wdr");
 
   // Return pin to input mode
   Parent::input();
 
-  // getResponse() requires interrupts to be enabled globally
-  // but also requires all other interrupts to be disabled.
-  // It also always leaves interrupts disabled globally, so we fix that after.
-
-  const auto r = getResponse();
-
-  asm("sei");
-
-  return r;
+  return getResponse();
 }
