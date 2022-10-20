@@ -448,8 +448,6 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
 
   BDShotTimer::enableOverflowInterrupt();
 
-  register u1 const syncValue = timerCounterValueSync;
-
   // The ultra fast loop implementation
   // Relies on extra weird code at the end of the ISR to save us
   if (AssemblyComments) asm("; Ultra Fast Loop Start");
@@ -459,7 +457,7 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
       if (AssemblyComments) asm("; Ultra Fast Loop. Waiting for transition to high.");
     } while (!isHigh() || (BDShotConfig::useDebounce && !isHigh()));
 
-    BDShotTimer::setCounter(syncValue);
+    BDShotTimer::setCounter(timerCounterValueSync);
 
     if (ResetWatchdog::ReceivedTransition) asm("wdr");
 
@@ -473,7 +471,7 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
       if (AssemblyComments) asm("; Ultra Fast Loop. Waiting for transition to low.");
     } while (isHigh() || (BDShotConfig::useDebounce && isHigh()));
 
-    BDShotTimer::setCounter(syncValue);
+    BDShotTimer::setCounter(timerCounterValueSync);
 
     if (ResetWatchdog::ReceivedTransition) asm("wdr");
 
