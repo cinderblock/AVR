@@ -86,9 +86,6 @@ void AVR::DShot::BDShot<Port, Pin, Speed>::init() {
   Parent::IO::set();
 }
 
-// Make sure these functions are always optimized
-#pragma GCC optimize "O3"
-
 // Pick 3 "call-used" or "call-clobbered" general purpose registers.
 // Order/adjacency does not matter.
 // We'll use these to store the response as we read it.
