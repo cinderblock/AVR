@@ -708,7 +708,7 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::sendCommand(Command<t
   // Set output mode only while sending command
   Parent::output();
 
-  // We don't need DShot implementation to handle interrupts
+  // We don't want DShot implementation to touch interrupts
   Parent::sendCommand(c, false);
   if (AVR::DShot::BDShotConfig::ResetWatchdog::AfterSend) asm("wdr");
 
