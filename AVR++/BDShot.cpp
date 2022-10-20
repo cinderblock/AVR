@@ -638,8 +638,11 @@ static AVR::DShot::Response bitByBit() {
 
   if (isBadChecksum(n3, n2, n1, n0)) return Response::Error::BadChecksum;
 
-  // Make a response from the 3 nibbles of good data
-  return {n3, n2, n1};
+  // Efficient combination of nibbles
+  asm("swap %0" : "=r"(n2) : "0"(n2));
+  n1 |= n2;
+
+  return {n1, n3};
 }
 } // namespace MakeResponse
 

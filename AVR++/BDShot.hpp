@@ -199,7 +199,7 @@ public:
    * @param rpmPeriodBase
    * @param rpmPeriodExponent
    */
-  inline constexpr Response(u1 n3, u1 n2, u1 n1) : lsb((n2 << 4) | n1), msb(n3 & 0xf) {}
+  inline constexpr Response(u1 lsb, u1 msb) : lsb(lsb), msb(msb) {}
 
   /**
    * @return true if there was an error
