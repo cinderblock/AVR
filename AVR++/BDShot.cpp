@@ -33,7 +33,8 @@ namespace AVR {
 namespace DShot {
 namespace BDShotTimer {
 namespace {
-static constexpr auto BitOverflowFlagMask = 1 << OCF0A;
+static constexpr auto BitOverflowShortFlagMask = 1 << OCF0A;
+static constexpr auto BitOverflowMaxFlagMask = 1 << TOV0;
 } // namespace
 
 static inline void setCounter(u1 value) {
@@ -41,24 +42,29 @@ static inline void setCounter(u1 value) {
   TCNT0 = value;
 }
 
-static inline void enableOverflowInterrupt() {
-  if (AssemblyComments) asm("; enableOverflowInterrupt()");
-  TIMSK0 = BitOverflowFlagMask;
+static inline void enableOverflowShortInterrupt() {
+  if (AssemblyComments) asm("; enableOverflowShortInterrupt()");
+  TIMSK0 = BitOverflowShortFlagMask;
 }
 
-static inline void disableOverflowInterrupt() {
-  if (AssemblyComments) asm("; disableOverflowInterrupt()");
+static inline void disableOverflowShortInterrupt() {
+  if (AssemblyComments) asm("; disableOverflowShortInterrupt()");
   TIMSK0 = 0;
 }
 
-static inline void clearOverflowFlag() {
-  if (AssemblyComments) asm("; clearOverflowFlag()");
-  TIFR0 |= BitOverflowFlagMask;
+static inline void clearOverflowShortFlag() {
+  if (AssemblyComments) asm("; clearOverflowShortFlag()");
+  TIFR0 |= BitOverflowShortFlagMask;
 }
 
-static inline bool hasOverflowFlagged() {
-  if (AssemblyComments) asm("; hasOverflowFlagged()");
-  return TIFR0 & BitOverflowFlagMask;
+static inline void clearOverflowMaxFlag() {
+  if (AssemblyComments) asm("; clearOverflowMaxFlag()");
+  TIFR0 |= BitOverflowMaxFlagMask;
+}
+
+static inline bool hasOverflowMaxFlagged() {
+  if (AssemblyComments) asm("; hasOverflowMaxFlagged()");
+  return TIFR0 & BitOverflowMaxFlagMask;
 }
 
 static inline void setMaxTimeout() {
@@ -382,6 +388,7 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
 
   BDShotTimer::setMaxTimeout();
   BDShotTimer::setCounter(u1(-responseTimeoutTicks));
+  BDShotTimer::clearOverflowMaxFlag();
   BDShotTimer::start();
 
   if (AssemblyComments) asm("; Waiting for first transition");
@@ -390,7 +397,7 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
   while (isHigh() || (useDebounce && isHigh())) {
     if (ResetWatchdog::WaitingFirstTransitionFast) asm("wdr");
 
-    if (!BDShotTimer::hasOverflowFlagged()) continue;
+    if (!BDShotTimer::hasOverflowMaxFlagged()) continue;
     // If timer overflows, see if we've overflowed enough to know we're not getting a response.
 
     if (!--overflowsWhileWaiting) {
@@ -400,7 +407,7 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
     }
 
     // Clear the flag so we can wait for the next overflow
-    BDShotTimer::clearOverflowFlag();
+    BDShotTimer::clearOverflowMaxFlag();
 
     if (ResetWatchdog::WaitingFirstTransitionTimerOverflow) asm("wdr");
   }
@@ -413,7 +420,7 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
   // Set timer so that it matches trigger register in 1.5 bit periods
   BDShotTimer::setCounter(timerCounterValueInitial);
   BDShotTimer::setShortTimeout();
-  BDShotTimer::clearOverflowFlag();
+  BDShotTimer::clearOverflowShortFlag();
 
   if (AssemblyOptimizations::saveZRegister) {
     // Save the contents of the call-saved result registers
@@ -451,7 +458,7 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
 
   if (AssemblyComments) asm("; DON'T MESS WITH: " ResultReg0 " " ResultReg1 " " ResultReg2 " r30 r31 or Carry!");
 
-  BDShotTimer::enableOverflowInterrupt();
+  BDShotTimer::enableOverflowShortInterrupt();
 
   // The ultra fast loop implementation
   // Relies on extra weird code at the end of the ISR to save us
@@ -528,7 +535,7 @@ static AVR::DShot::Response bitByBit() {
 
   BDShotTimer::stop();
 
-  BDShotTimer::disableOverflowInterrupt();
+  BDShotTimer::disableOverflowShortInterrupt();
 
   /**
    * Here is where we need the "magic" to happen.
