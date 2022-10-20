@@ -30,55 +30,104 @@
 namespace AVR {
 namespace DShot {
 namespace BDShotTimer {
-// Set the top of the timer
-static inline void init(u1 period) {
-  using namespace AVR::DShot::BDShotConfig;
+
+u1 const prescaler = 1;
+
+static constexpr auto BitOverflowFlagMask = 1 << OCF0A;
+static inline void setCounter(u1 value) {
+  asm("; setCounter(u1 value)");
+  TCNT0 = value;
+}
+
+static inline void enableOverflowInterrupt() {
+  asm("; enableOverflowInterrupt()");
+  TIMSK0 = BitOverflowFlagMask;
+}
+
+static inline void disableOverflowInterrupt() {
+  asm("; disableOverflowInterrupt()");
+  TIMSK0 = 0;
+}
+
+static inline void clearOverflowFlag() {
+  asm("; clearOverflowFlag()");
+  TIFR0 |= BitOverflowFlagMask;
+}
+
+static inline bool hasOverflowFlagged() {
+  asm("; hasOverflowFlagged()");
+  return TIFR0 & BitOverflowFlagMask;
+}
+
+static inline void setMaxTimeout() {
+  asm("; setMaxTimeout();");
+
+  // Normal mode
+  u1 wgm = 0b000;
+
+  // wgm2 doesn't change
+
+  TCCR0A = wgm & 0b11;
+}
+
+static inline void setShortTimeout() {
+  asm("; setShortTimeout();");
 
   // CTC Mode (clear counter at OCR0A)
   u1 wgm = 0b010;
-  u1 const prescaler = 1;
+
+  // wgm2 doesn't change
+
+  TCCR0A = wgm & 0b11;
+}
+static inline void start() {
+  asm("; start()");
+  // Both modes use same value
+  u1 wgm2 = 0;
+  TCCR0B = (wgm2 << WGM02) | (prescaler & 0b111) << CS00;
+}
+static inline void stop() {
+  asm("; stop()");
+  TCCR0B = 0;
+}
+
+static inline void init(u1 shortPeriod) {
+  using namespace AVR::DShot::BDShotConfig;
 
   asm("; Setup Timer");
 
   // Set TOP value
-  OCR0A = period - 1;
+  OCR0A = shortPeriod - 1;
 
-  // TODO: Make timer configurable?
-
-  // Set up and start timer that we use internally
+  // Set up timer that we use internally
   TIMSK0 = 0; // Ensure timer interrupts are disabled
-  TCCR0A = wgm & 0b11;
-  // Start the timer
-  TCCR0B = ((wgm >> 2) & 1) << WGM02 | (prescaler & 0b111) << CS00;
+  TCCR0A = 0;
+
+  start();
 }
-
-// Set the timer counter to the value
-static inline void setCounter(u1 value) { TCNT0 = value; }
-
-static constexpr auto BitOverflowFlagMask = 1 << OCF0A;
-
-static inline void enableOverflowInterrupt() { TIMSK0 = BitOverflowFlagMask; }
-static inline void disableOverflowInterrupt() { TIMSK0 = 0; }
-static inline void clearOverflowFlag() { TIFR0 |= BitOverflowFlagMask; }
-static inline bool hasOverflowFlagged() { return TIFR0 & BitOverflowFlagMask; }
 } // namespace BDShotTimer
 } // namespace DShot
 } // namespace AVR
 
 template <AVR::Ports Port, int Pin, AVR::DShot::Speeds Speed>
 void AVR::DShot::BDShot<Port, Pin, Speed>::init() {
-  using Basic::u1;
+  BDShotTimer::init(Periods::delayPeriodTicks);
 
   if (Parent::IO::isHigh()) {
+    asm("; Waiting for bootloader exit");
+
     // Output needs to be low long enough to get out of bootloader and start main program
     Parent::IO::clr();
     Parent::IO::output();
 
     // TODO: This is a long delay. Allow other things to happen while we wait.
     _delay_ms(BDShotConfig::exitBootloaderDelay);
-  }
 
-  BDShotTimer::init(Periods::delayPeriodTicks);
+    asm("; Done waiting for bootloader exit");
+
+    // Set output high
+    Parent::IO::set();
+  }
 
   asm("; Init BDShot");
 
@@ -194,12 +243,7 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
 
   constexpr unsigned responseTimeoutTicks = (((long long)(F_CPU)) * AVR::DShot::BDShotConfig::responseTimeout) / 1e6;
 
-  // We're overflowing with OCRA now which sets lower TOP than 0xff
-  constexpr unsigned responseTimeoutOverflows = responseTimeoutTicks / Periods::delayPeriodTicks + 1;
-  u1 overflowsWhileWaiting = 0;
-
-  static_assert(responseTimeoutOverflows < u4(1) << (8 * sizeof(overflowsWhileWaiting)),
-                "responseTimeoutOverflows is too large for this implementation");
+  constexpr unsigned responseTimeoutOverflows = responseTimeoutTicks >> 8;
 
   /**
    * Number of ticks from timer overflow to when we execute the instruction that samples the pin's input state.
@@ -222,7 +266,7 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
    * Most of the time, this number is used.
    *
    * Sometimes, the timer has overflowed and we need to check that our timeout counter hasn't reached zero.
-   * In this case, we'll be slightly more out of sync. There is some minor optimization that could be done here.
+   * In this case, we chance being slightly more out of sync than normal. So we use the largest Timer period possible.
    * In any case, it will resync on the next bit transition.
    *
    * @see `ticksInitialSpinLoopWorstCase`
@@ -322,6 +366,16 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
   static_assert(Periods::delayPeriodTicks > adjustInitialTicks, "delayPeriodTicks is too small");
   static_assert(Periods::delayPeriodTicks < 200, "delayPeriodTicks is too large");
 
+  asm("; Starting timer with max timeout");
+
+  BDShotTimer::setMaxTimeout();
+  BDShotTimer::setCounter(u1(-responseTimeoutTicks));
+
+  u1 overflowsWhileWaiting = responseTimeoutOverflows;
+
+  static_assert(responseTimeoutOverflows < u4(1) << (8 * sizeof(overflowsWhileWaiting)),
+                "responseTimeoutOverflows is too large for this implementation");
+
   asm("; Waiting for first transition");
 
   // Wait for initial high-to-low transition, or timeout while waiting
@@ -331,7 +385,8 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
     if (!BDShotTimer::hasOverflowFlagged()) continue;
     // If timer overflows, see if we've overflowed enough to know we're not getting a response.
 
-    if (overflowsWhileWaiting++ > responseTimeoutOverflows) {
+    if (!overflowsWhileWaiting--) {
+      asm("; Return timeout");
       // Timeout waiting for response
       return AVR::DShot::Response::Error::ResponseTimeout;
     }
@@ -349,6 +404,7 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
   asm("; Initial Ticks");
   // Set timer so that it matches trigger register in 1.5 bit periods
   BDShotTimer::setCounter(timerCounterValueInitial);
+  BDShotTimer::setShortTimeout();
   BDShotTimer::clearOverflowFlag();
 
   if (AVR::DShot::BDShotConfig::AssemblyOptimizations::saveZRegister) {
