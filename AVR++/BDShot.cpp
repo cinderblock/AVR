@@ -457,6 +457,8 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
   // Relies on extra weird code at the end of the ISR to save us
   if (AssemblyComments) asm("; Ultra Fast Loop Start");
   while (true) {
+    asm("" ::: ResultReg0, ResultReg1, ResultReg2, "r31"); // Remind the compiler that these registers will change
+
     do {
       if (Debug::EmitPulsesAtIdle) Debug::Pin::tgl();
       if (AssemblyComments) asm("; Ultra Fast Loop. Waiting for transition to high.");
@@ -543,8 +545,8 @@ static AVR::DShot::Response bitByBit() {
 
   // Pop the interrupt return location off the stack (to get out of the ultra fast main loop)
   // Use a register we're about to use for other stuff
-  asm("pop r24");
-  asm("pop r24");
+  asm("pop r24; Break out of Ultra Fast Loop when we reti");
+  asm("pop r24; Break out of Ultra Fast Loop when we reti");
 
   if (AVR::DShot::BDShotConfig::ResetWatchdog::BeforeProcessing) asm("wdr");
 
@@ -614,15 +616,15 @@ static AVR::DShot::Response bitByBit() {
 
   if (AVR::DShot::BDShotConfig::AssemblyOptimizations::saveResultRegisters) {
     // Restore the contents of the call-saved result registers
-    asm("pop " ResultReg2);
-    asm("pop " ResultReg1);
-    asm("pop " ResultReg0);
+    asm("pop " ResultReg2 ::: ResultReg2);
+    asm("pop " ResultReg1 ::: ResultReg1);
+    asm("pop " ResultReg0 ::: ResultReg0);
   }
 
   if (AVR::DShot::BDShotConfig::AssemblyOptimizations::saveZRegister) {
     // Restore the contents of the call-saved result registers
-    asm("pop r31");
-    asm("pop r30");
+    asm("pop r31" ::: "r31");
+    asm("pop r30" ::: "r30");
   }
 
   using AVR::DShot::Response;
