@@ -640,7 +640,10 @@ void AVR::DShot::BDShot<Port, Pin, Speed>::ReadBitISR() {
   asm("; Skip next instruction if input is low\n\t"
       "sbic %[PIN], %[N]\n\t"
 
-      "sec ; Set Carry"
+      "sec ; Set Carry\n\t"
+
+      // If input was low, carry is still low.
+      // If was high, carry is now high.
       :
       : [PIN] "M"(unsigned(Port) // Convert Port to integer
                   - __SFR_OFFSET // Offset because of AVR internal workings
@@ -648,8 +651,6 @@ void AVR::DShot::BDShot<Port, Pin, Speed>::ReadBitISR() {
                   ),
         [N] "I"(Pin) // The pin number
   );
-  // If input was low, carry is still low.
-  // If was high, carry is now high.
 
   if (BDShotConfig::ResetWatchdog::SampledBit) asm("wdr");
 
