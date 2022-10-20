@@ -584,7 +584,7 @@ static AVR::DShot::Response bitByBit() {
       "lsr  " /**/ ResultReg1 /**/ /**/ "\t; ---3 3333  ---2 2222  1111 0000 1\n\t" // n2 is ready in ResultReg1
 
       "andi " /**/ /**/ ResultReg0 ",0xf0\t; ---3 3333  ---2 2222  1111 ---- 1\n\t" // Ensure lower nibble is 0
-      "adc  " /**/ /**/ ResultReg0 ",r1  \t; ---3 3333  ---2 2222  1111 ---1 _\n\t" // Add carry to lower nibble
+      "adc  " /**/ /**/ ResultReg0 ",r1  \t; ---3 3333  ---2 2222  1111 ---1 _\n\t" // Add Carry to lower nibble
       "swap " /**/ /**/ ResultReg0 /**/ "\t; ---3 3333  ---2 2222  ---1 1111 _\n\t" // n1 is ready in ResultReg0
 
       // Decode the GCR encoded quintets into nibbles
@@ -647,16 +647,17 @@ void AVR::DShot::BDShot<Port, Pin, Speed>::ReadBitISR() {
    * High level goal:
    *  - Read pin
    *  - Put pin state into result
-   *  - Use carry to mark done reading all bits for main loop
+   *  - Use Carry to mark done reading all bits for main loop
    *
    * Tricks:
-   *  - Use `sbic` to help set carry bit to pin state
-   *  - Use carry bit and `rol` to do all the hard work
+   *  - Use `sbic` to help set Carry bit to pin state
+   *  - Use Carry bit and `rol` to do all the hard work
    *
-   * Detailed implementation:
+   * Detailed implementation, simplified:
    *  - Carry starts as 0 (from main loop requirements)
    *  - `sbic` Test input. If high, skip next instruction
-   *  - `sec ` Set carry to 1 (unless skipped)
+   *  - `sec ` Set Carry to 1 (unless skipped)
+   *  - `rjmp` Jump to shared remainder of implementation
    *  - `rol ` Move Carry into result word, first byte
    *  - `rol ` Rotate result word, middle byte
    *  - `rol ` Rotate Carry out of result word, last byte
@@ -664,25 +665,18 @@ void AVR::DShot::BDShot<Port, Pin, Speed>::ReadBitISR() {
    */
 
   // Carry is always zero at this point
-  asm("; Skip next instruction if input is low\n\t"
-      "sbic %[PIN], %[N]\n\t"
-
-      "sec ; Set Carry\n\t"
-
-      // If input was low, carry is still low.
-      // If was high, carry is now high.
-
-      // We could include the `rol` instructions here to save a jump when using a single pin.
-      // This however saves 10 bytes of flash per pin when using more than 1.
-      "rjmp %x[HandleBit]\n\t"
-      :
+  asm("sbic %[PIN], %[N]\n\tsec; Set Carry, unless input high"
+      // If input was low, Carry is still low
+      // If was high, Carry is now high
+      :                          // Carry is our "output"
       : [PIN] "M"(unsigned(Port) // Convert Port to integer
                   - __SFR_OFFSET // Offset because of AVR internal workings
                   - 2            // Distance from PINx to PORTx
                   ),
-        [HandleBit] "p"(&MakeResponse::bitByBit), //
-        [N] "I"(Pin)                              // The pin number
-  );
+        [N] "I"(Pin));
+
+  // Share the bit handling logic between all pins
+  asm("rjmp %x[HandleBit]" ::[HandleBit] "p"(&MakeResponse::bitByBit));
 }
 
 // Don't pollute
