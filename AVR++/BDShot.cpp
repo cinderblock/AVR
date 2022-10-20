@@ -528,7 +528,7 @@ static AVR::DShot::Response fromResult() {
 
   Basic::u1 n0, n1, n2, n3;
 
-  if (AssemblyComments) asm("; NOW WE GET TO USE OUR REGISTERS: " ResultReg0 " " ResultReg1 " " ResultReg2);
+  if (AssemblyComments) asm("; DONE WITH REGISTERS: " ResultReg0 " " ResultReg1 " " ResultReg2);
 
   asm(
       // First we undo the shifting
