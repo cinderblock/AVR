@@ -27,6 +27,8 @@
 // cSpell:ignore SPIE EECR ADCSRA ADIE ADSC ADIF TWCR TWIE TWINT FPIE WDTCSR WDIE WDIF
 // cSpell:ignore subi breq sbic rjmp andi reti brcc ijmp
 
+constexpr static bool AssemblyComments = true;
+
 namespace AVR {
 namespace DShot {
 namespace BDShotTimer {
@@ -35,32 +37,32 @@ u1 const prescaler = 1;
 
 static constexpr auto BitOverflowFlagMask = 1 << OCF0A;
 static inline void setCounter(u1 value) {
-  asm("; setCounter(u1 value)");
+  if (AssemblyComments) asm("; setCounter(u1 value)");
   TCNT0 = value;
 }
 
 static inline void enableOverflowInterrupt() {
-  asm("; enableOverflowInterrupt()");
+  if (AssemblyComments) asm("; enableOverflowInterrupt()");
   TIMSK0 = BitOverflowFlagMask;
 }
 
 static inline void disableOverflowInterrupt() {
-  asm("; disableOverflowInterrupt()");
+  if (AssemblyComments) asm("; disableOverflowInterrupt()");
   TIMSK0 = 0;
 }
 
 static inline void clearOverflowFlag() {
-  asm("; clearOverflowFlag()");
+  if (AssemblyComments) asm("; clearOverflowFlag()");
   TIFR0 |= BitOverflowFlagMask;
 }
 
 static inline bool hasOverflowFlagged() {
-  asm("; hasOverflowFlagged()");
+  if (AssemblyComments) asm("; hasOverflowFlagged()");
   return TIFR0 & BitOverflowFlagMask;
 }
 
 static inline void setMaxTimeout() {
-  asm("; setMaxTimeout();");
+  if (AssemblyComments) asm("; setMaxTimeout();");
 
   // Normal mode
   u1 wgm = 0b000;
@@ -71,7 +73,7 @@ static inline void setMaxTimeout() {
 }
 
 static inline void setShortTimeout() {
-  asm("; setShortTimeout();");
+  if (AssemblyComments) asm("; setShortTimeout();");
 
   // CTC Mode (clear counter at OCR0A)
   u1 wgm = 0b010;
@@ -81,20 +83,20 @@ static inline void setShortTimeout() {
   TCCR0A = wgm & 0b11;
 }
 static inline void start() {
-  asm("; start()");
+  if (AssemblyComments) asm("; start()");
   // Both modes use same value
   u1 wgm2 = 0;
   TCCR0B = (wgm2 << WGM02) | (prescaler & 0b111) << CS00;
 }
 static inline void stop() {
-  asm("; stop()");
+  if (AssemblyComments) asm("; stop()");
   TCCR0B = 0;
 }
 
 static inline void init(u1 shortPeriod) {
   using namespace AVR::DShot::BDShotConfig;
 
-  asm("; Setup Timer");
+  if (AssemblyComments) asm("; Setup Timer");
 
   // Set TOP value
   OCR0A = shortPeriod - 1;
@@ -111,7 +113,7 @@ static inline void init(u1 shortPeriod) {
 
 template <AVR::Ports Port, int Pin, AVR::DShot::Speeds Speed>
 void AVR::DShot::BDShot<Port, Pin, Speed>::exitBootloader() {
-  asm("; Waiting for bootloader exit");
+  if (AssemblyComments) asm("; Waiting for bootloader exit");
 
   // Output needs to be low long enough to get out of bootloader and start main program
   Parent::IO::clr();
@@ -120,7 +122,7 @@ void AVR::DShot::BDShot<Port, Pin, Speed>::exitBootloader() {
   // TODO: This is a long delay. Allow other things to happen while we wait.
   _delay_ms(BDShotConfig::exitBootloaderDelay);
 
-  asm("; Done waiting for bootloader exit");
+  if (AssemblyComments) asm("; Done waiting for bootloader exit");
 
   // Set output high
   Parent::IO::set();
@@ -130,7 +132,7 @@ template <AVR::Ports Port, int Pin, AVR::DShot::Speeds Speed>
 void AVR::DShot::BDShot<Port, Pin, Speed>::init() {
   BDShotTimer::init(Periods::delayPeriodTicks);
 
-  asm("; Init BDShot");
+  if (AssemblyComments) asm("; Init BDShot");
 
   // Set output high
   Parent::IO::set();
@@ -367,7 +369,7 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
   static_assert(Periods::delayPeriodTicks > adjustInitialTicks, "delayPeriodTicks is too small");
   static_assert(Periods::delayPeriodTicks < 200, "delayPeriodTicks is too large");
 
-  asm("; Starting timer with max timeout");
+  if (AssemblyComments) asm("; Starting timer with max timeout");
 
   BDShotTimer::setMaxTimeout();
   BDShotTimer::setCounter(u1(-responseTimeoutTicks));
@@ -378,7 +380,7 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
   static_assert(responseTimeoutOverflows < u4(1) << (8 * sizeof(overflowsWhileWaiting)),
                 "responseTimeoutOverflows is too large for this implementation");
 
-  asm("; Waiting for first transition");
+  if (AssemblyComments) asm("; Waiting for first transition");
 
   // Wait for initial high-to-low transition, or timeout while waiting
   while (isHigh() || (BDShotConfig::useDebounce && isHigh())) {
@@ -388,7 +390,7 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
     // If timer overflows, see if we've overflowed enough to know we're not getting a response.
 
     if (!overflowsWhileWaiting--) {
-      asm("; Return timeout");
+      if (AssemblyComments) asm("; Return timeout");
       // Timeout waiting for response
       return AVR::DShot::Response::Error::ResponseTimeout;
     }
@@ -403,7 +405,7 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
 
   if (ResetWatchdog::ReceivedFirstTransition) asm("wdr");
 
-  asm("; Initial Ticks");
+  if (AssemblyComments) asm("; Initial Ticks");
   // Set timer so that it matches trigger register in 1.5 bit periods
   BDShotTimer::setCounter(timerCounterValueInitial);
   BDShotTimer::setShortTimeout();
@@ -432,7 +434,8 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
     asm("push " Result2Reg);
   }
 
-  asm("; Setting up our magic registers: " Result0Reg " " Result1Reg " " Result2Reg " r30 r31 or Carry\n\t");
+  if (AssemblyComments)
+    asm("; Setting up our magic registers: " Result0Reg " " Result1Reg " " Result2Reg " r30 r31 or Carry\n\t");
 
   asm("ldi " Result0Reg ", %0 ; result0" ::"M"(FinishedMarker >> (8 * 0)) : Result0Reg); // lsb
   asm("ldi " Result1Reg ", %0 ; result1" ::"M"(FinishedMarker >> (8 * 1)) : Result1Reg);
@@ -441,7 +444,8 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
   // Make sure Carry starts in expected state
   asm("clc \t;Clear Carry Flag");
 
-  asm("; DON'T MESS WITH REGISTERS: " Result0Reg " " Result1Reg " " Result2Reg " r30 r31 or Carry\n\t");
+  if (AssemblyComments)
+    asm("; DON'T MESS WITH REGISTERS: " Result0Reg " " Result1Reg " " Result2Reg " r30 r31 or Carry\n\t");
 
   BDShotTimer::enableOverflowInterrupt();
 
@@ -449,11 +453,11 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
 
   // The ultra fast loop implementation
   // Relies on extra weird code at the end of the ISR to save us
-  asm("; Ultra Fast Loop Start");
+  if (AssemblyComments) asm("; Ultra Fast Loop Start");
   while (true) {
     do {
       if (Debug::EmitPulsesAtIdle) Debug::Pin::tgl();
-      asm("; Ultra Fast Loop. Waiting for transition to high.");
+      if (AssemblyComments) asm("; Ultra Fast Loop. Waiting for transition to high.");
     } while (!isHigh() || (BDShotConfig::useDebounce && !isHigh()));
 
     BDShotTimer::setCounter(syncValue);
@@ -467,7 +471,7 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
 
     do {
       if (Debug::EmitPulsesAtIdle) Debug::Pin::tgl();
-      asm("; Ultra Fast Loop. Waiting for transition to low.");
+      if (AssemblyComments) asm("; Ultra Fast Loop. Waiting for transition to low.");
     } while (isHigh() || (BDShotConfig::useDebounce && isHigh()));
 
     BDShotTimer::setCounter(syncValue);
@@ -499,7 +503,7 @@ Basic::u1 decodeNibble(Basic::u1 b) { return GCR::decode(b & 0x1f); }
 static AVR::DShot::Response fromResult() {
   // All done!
 
-  asm("; DONE WITH REGISTERS: r30 r31 and Carry");
+  if (AssemblyComments) asm("; DONE WITH REGISTERS: r30 r31 and Carry");
 
   AVR::DShot::BDShotTimer::stop();
 
@@ -527,7 +531,7 @@ static AVR::DShot::Response fromResult() {
 
   Basic::u1 n0, n1, n2, n3;
 
-  asm("; NOW WE GET TO USE OUR REGISTERS: " Result0Reg " " Result1Reg " " Result2Reg);
+  if (AssemblyComments) asm("; NOW WE GET TO USE OUR REGISTERS: " Result0Reg " " Result1Reg " " Result2Reg);
 
   asm(
       // First we undo the shifting
@@ -668,7 +672,7 @@ void AVR::DShot::BDShot<Port, Pin, Speed>::ReadBitISR() {
   // But in practice that doesn't matter as we always wait a loop cycles to see the transition.
   // So instead we clean up 1 cycle faster when we're done!
 
-  asm("; DONE WITH REGISTERS: r30 r31 and Carry");
+  if (AssemblyComments) asm("; DONE WITH REGISTERS: r30 r31 and Carry");
 
   // Jump to the function [MakeResponse::fromResult()] that makes the result the getResponse() caller wants.
   // When it returns, since we've mucked with the call stack, it'll return in place of getResponse().
@@ -690,7 +694,7 @@ DoneSamplingPin:
 // We need to mark this as Naked for maximum performance because the generated entry/exit sequences are unnecessary in
 // our known execution path.
 ISR(TIMER0_COMPA_vect, ISR_NAKED) {
-  asm("; Start of TIMER0_COMPA_vect");
+  if (AssemblyComments) asm("; Start of TIMER0_COMPA_vect");
 
   using AVR::DShot::BDShotConfig::Debug::EmitPulseAtSample;
   using AVR::DShot::BDShotConfig::Debug::Pin;
