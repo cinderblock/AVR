@@ -111,7 +111,7 @@
 
 #include "DShot.hpp"
 
-// cSpell:ignore GPIO
+// cSpell:ignore GPIO USART RXCIE TXCIE UDRIE
 
 namespace AVR {
 namespace DShot {
