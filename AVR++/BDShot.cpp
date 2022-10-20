@@ -488,9 +488,6 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
 
 namespace MakeResponse {
 
-/**
- * @return false if correct
- */
 inline static constexpr bool isBadChecksum(Basic::u1 n3, Basic::u1 n2, Basic::u1 n1, Basic::u1 n0) {
   return 0xf ^ n0 ^ n1 ^ n2 ^ n3;
 }
@@ -509,6 +506,7 @@ static AVR::DShot::Response fromResult() {
    *
    * In getResponse(), in our spin loop, waiting for transitions, GCC thinks that it will never get out of it.
    * If we returned from this interrupt like normal, we'd go right back into that infinite loop.
+   *
    * Fortunately getResponse() needs to return a Response.
    * So if we can just get some other function to return that Response for us...
    *
@@ -525,8 +523,6 @@ static AVR::DShot::Response fromResult() {
   if (AVR::DShot::BDShotConfig::ResetWatchdog::BeforeProcessing) asm("wdr");
 
   Basic::u1 n0, n1, n2, n3;
-
-  if (AssemblyComments) asm("; DONE WITH REGISTERS: " ResultReg0 " " ResultReg1 " " ResultReg2);
 
   asm(
       // First we undo the shifting
@@ -587,6 +583,8 @@ static AVR::DShot::Response fromResult() {
       : [n0] "=r"(n0), [n1] "=r"(n1), [n2] "=r"(n2), [n3] "=r"(n3)
       : [decodeNibble] "p"(&GCR::decode)
       : "r24", ResultReg0, ResultReg1, ResultReg2);
+
+  if (AssemblyComments) asm("; DONE WITH REGISTERS: " ResultReg0 " " ResultReg1 " " ResultReg2);
 
   if (AVR::DShot::BDShotConfig::AssemblyOptimizations::saveResultRegisters) {
     // Restore the contents of the call-saved result registers
