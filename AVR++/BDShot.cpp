@@ -563,19 +563,19 @@ static AVR::DShot::Response fromResult() {
 
       "andi r24, 0x1f\n\t" // r24 has some of n1 in it still. Mask it out.
 
-      "call %x[decodeNibble]\t; Decode nibbles\n\t"
+      "rcall %x[decodeNibble]\t; Decode nibbles\n\t"
       "mov  %[n0], r24\n\t" // n0 was in r24 already
 
       "mov  r24, " /**/ /**/ ResultReg0 "\n\t"
-      "call %x[decodeNibble]\t; Decode nibbles\n\t"
+      "rcall %x[decodeNibble]\t; Decode nibbles\n\t"
       "mov  %[n1], r24\n\t" // n1 was in ResultReg0
 
       "mov  r24, " /**/ ResultReg1 /**/ "\n\t"
-      "call %x[decodeNibble]\t; Decode nibbles\n\t"
+      "rcall %x[decodeNibble]\t; Decode nibbles\n\t"
       "mov  %[n2], r24\n\t" // n2 was in ResultReg1
 
       "mov  r24, " ResultReg2 /**/ /**/ "\n\t"
-      "call %x[decodeNibble]\t; Decode nibbles\n\t"
+      "rcall %x[decodeNibble]\t; Decode nibbles\n\t"
       "mov  %[n3], r24\n\t" // n3 was in ResultReg2
 
       // Let the compiler do the rest
