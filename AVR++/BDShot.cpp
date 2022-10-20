@@ -436,8 +436,7 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
     asm("push " ResultReg2);
   }
 
-  if (AssemblyComments)
-    asm("; Setting up our result registers (" ResultReg0 " " ResultReg1 " " ResultReg2 ") and Carry");
+  if (AssemblyComments) asm("; Setting up ResultReg: (" ResultReg0 " " ResultReg1 " " ResultReg2 ") and Carry");
 
   // Use a set bit in result to indicate we've gotten all the bits.
   // That bit will roll into Carry bit, which we test to break out of our spin loop.
@@ -450,8 +449,7 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
   // Make sure Carry starts in expected state
   asm("clc \t;Clear Carry Flag");
 
-  if (AssemblyComments)
-    asm("; DON'T MESS WITH REGISTERS: " ResultReg0 " " ResultReg1 " " ResultReg2 " r30 r31 or Carry!");
+  if (AssemblyComments) asm("; DON'T MESS WITH: " ResultReg0 " " ResultReg1 " " ResultReg2 " r30 r31 or Carry!");
 
   BDShotTimer::enableOverflowInterrupt();
 
@@ -459,7 +457,7 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
   // Relies on extra weird code at the end of the ISR to save us
   if (AssemblyComments) asm("; Ultra Fast Loop Start");
   while (true) {
-    asm("" ::: ResultReg0, ResultReg1, ResultReg2, "r31"); // Remind the compiler that these registers will change
+    asm("" ::: ResultReg0, ResultReg1, ResultReg2, "r30", "r31"); // Remind the compiler
 
     do {
       if (Debug::EmitPulsesAtIdle) Debug::Pin::tgl();
