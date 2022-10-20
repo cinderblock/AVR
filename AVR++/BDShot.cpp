@@ -512,15 +512,15 @@ static AVR::DShot::Response fromResult() {
       "call %x[decodeNibble]\t; Decode nibbles\n\t"
       "mov  %[n0], r24\n\t" // n0 was in r24 already
 
-      "mov  r24, " Result0Reg "\n\t"
+      "mov  r24, " /**/ /**/ Result0Reg "\n\t"
       "call %x[decodeNibble]\t; Decode nibbles\n\t"
       "mov  %[n1], r24\n\t" // n1 was in Result0Reg
 
-      "mov  r24, " Result1Reg "\n\t"
+      "mov  r24, " /**/ Result1Reg /**/ "\n\t"
       "call %x[decodeNibble]\t; Decode nibbles\n\t"
       "mov  %[n2], r24\n\t" // n2 was in Result1Reg
 
-      "mov  r24, " Result2Reg "\n\t"
+      "mov  r24, " Result2Reg /**/ /**/ "\n\t"
       "call %x[decodeNibble]\t; Decode nibbles\n\t"
       "mov  %[n3], r24\n\t" // n3 was in Result2Reg
 
