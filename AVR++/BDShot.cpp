@@ -544,19 +544,19 @@ static AVR::DShot::Response fromResult() {
       // Now we turn 3 bytes into 4 quintets
 
       // Layout:                              Result 2 | Result 1 | Result 0|Carry
-      "mov  r24, " /**/ ResultReg0 /**/ "\t; ---- 3333  3222 2211  1110 0000 +\n\t" // move n0 to r24 for later
+      "mov  r24, " /**/ ResultReg0 /**/ "\t; _--- 3333  3222 2211  1110 0000 ?\n\t" // move n0 to r24 for later
 
-      "rol  " /**/ ResultReg1 /**/ /**/ "\t; ---- 3333  2222 211+  1110 0000 3\n\t"
-      "rol  " ResultReg2 /**/ /**/ /**/ "\t; ---3 3333  2222 211+  1110 0000 -\n\t" // n3 is ready in ResultReg2
+      "lsl  " /**/ ResultReg1 /**/ /**/ "\t; _--- 3333  2222 211_  1110 0000 3\n\t"
+      "rol  " ResultReg2 /**/ /**/ /**/ "\t; ---3 3333  2222 211_  1110 0000 _\n\t" // n3 is ready in ResultReg2
 
-      "lsr  " /**/ ResultReg1 /**/ /**/ "\t; ---3 3333  -222 2211  1110 0000 +\n\t"
+      "lsr  " /**/ ResultReg1 /**/ /**/ "\t; ---3 3333  -222 2211  1110 0000 _\n\t"
       "lsr  " /**/ ResultReg1 /**/ /**/ "\t; ---3 3333  --22 2221  1110 0000 1\n\t"
       "ror  " /**/ /**/ ResultReg0 /**/ "\t; ---3 3333  --22 2221  1111 0000 0\n\t"
       "lsr  " /**/ ResultReg1 /**/ /**/ "\t; ---3 3333  ---2 2222  1111 0000 1\n\t" // n2 is ready in ResultReg1
 
       "andi " /**/ /**/ ResultReg0 ",0xf0\t; ---3 3333  ---2 2222  1111 ---- 1\n\t" // Ensure lower nibble is 0
-      "adc  " /**/ /**/ ResultReg0 ",r1  \t; ---3 3333  ---2 2222  1111 ---1 -\n\t" // Add carry to lower nibble
-      "swap " /**/ /**/ ResultReg0 /**/ "\t; ---3 3333  ---2 2222  ---1 1111 -\n\t" // n1 is ready in ResultReg0
+      "adc  " /**/ /**/ ResultReg0 ",r1  \t; ---3 3333  ---2 2222  1111 ---1 _\n\t" // Add carry to lower nibble
+      "swap " /**/ /**/ ResultReg0 /**/ "\t; ---3 3333  ---2 2222  ---1 1111 _\n\t" // n1 is ready in ResultReg0
 
       // Decode the GCR encoded quintets into nibbles
       // We don't need to worry about trash in the upper nibbles because decodeNibble() masks them out
