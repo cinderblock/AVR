@@ -42,11 +42,24 @@
  *   while (true) {
  *     _delay_ms(1);
  *
- *     auto res = ESC::sendCommand(0.5);
+ *     // Disable other interrupts individually
+ *     // Disable USART interrupts, for instance
+ *     UCSR0B &= 0b0001'1111;
+ *
+ *     // Reset watchdog before sending command
+ *     WDT::tick();
+ *
+ *     auto res = ESC::sendCommand(0.5); // 250us maximum execution time for DSHOT150
+ *
+ *     sei(); // Implementation will leave interrupts disabled unless you change HandleInterrupts in BDShot.cpp
+ *
+ *     // Reenable other interrupts individually
+ *     UCSR0B |= (1 << RXCIE0) | (0 << TXCIE0) | (1 << UDRIE0);
  *
  *     // Check for transmission errors first
  *     if (res.isError()) {
  *       auto err = res.getError();
+ *       // Do something with the error
  *       continue;
  *     }
  *
@@ -54,17 +67,21 @@
  *     if (res.isExtendedTelemetry()) {
  *       auto et = res.getTelemetryType();
  *       auto val = res.getTelemetryValue();
+ *       // Do something with the extended telemetry
  *       continue;
  *     }
  *
  *     // Optional
  *     if (res.isStopped()) {
+ *       // Do something with the stopped state
  *       continue;
  *     }
  *
  *     // Get useful numbers
  *     u2 period = res.getPeriodMicros();
  *     float rpm = res.getRPM();
+ *
+ *     // Do something with the motor telemetry
  *   }
  * }
  * ```
