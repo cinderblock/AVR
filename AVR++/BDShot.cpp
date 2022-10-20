@@ -497,7 +497,28 @@ inline static constexpr bool isBadChecksum(Basic::u1 n3, Basic::u1 n2, Basic::u1
   return 0xf ^ n0 ^ n1 ^ n2 ^ n3;
 }
 
-static AVR::DShot::Response fromResult() {
+static void interruptReturn() __attribute__((naked));
+void interruptReturn() { asm("reti"); }
+
+static AVR::DShot::Response bitByBit() {
+  using namespace AVR::DShot::BDShotConfig;
+
+  if (ResetWatchdog::SampledBit) asm("wdr");
+
+  asm("; Store Carry into Result\n\t"
+      "rol " ResultReg0 "\n\t"
+      "rol " ResultReg1 "\n\t"
+      "rol " ResultReg2 "\n\t"
+      "; And get Carry from Result. If set, it indicates we're done." ::
+          : ResultReg0, ResultReg1, ResultReg2);
+
+  // Reti if Carry is clear to continue receiving bits
+  // Carry will eventually be set by the initial bit set in ResultReg when we started receiving bits
+  asm("brcc %x[DoneSamplingPin]; Branch to reti if Carry cleared" : : [DoneSamplingPin] "p"(&interruptReturn));
+  // We could invert the logic and use `brcs` instead, to get back to the main loop 1 cycle sooner.
+  // But in practice that doesn't matter as we always wait a loop cycles to see the transition.
+  // So instead we clean up 1 cycle faster when we're done!
+
   // All done!
 
   if (AssemblyComments) asm("; DONE WITH REGISTERS: r30 r31 and Carry");
@@ -619,8 +640,6 @@ static AVR::DShot::Response fromResult() {
 }
 } // namespace MakeResponse
 
-static void HandleBit() __attribute__((naked));
-
 template <AVR::Ports Port, int Pin, AVR::DShot::Speeds Speed>
 void AVR::DShot::BDShot<Port, Pin, Speed>::ReadBitISR() {
   /**
@@ -660,42 +679,9 @@ void AVR::DShot::BDShot<Port, Pin, Speed>::ReadBitISR() {
                   - __SFR_OFFSET // Offset because of AVR internal workings
                   - 2            // Distance from PINx to PORTx
                   ),
-        [HandleBit] "p"(&HandleBit), //
-        [N] "I"(Pin)                 // The pin number
+        [HandleBit] "p"(&MakeResponse::bitByBit), //
+        [N] "I"(Pin)                              // The pin number
   );
-}
-
-void HandleBit() {
-  using namespace AVR::DShot::BDShotConfig;
-
-  if (ResetWatchdog::SampledBit) asm("wdr");
-
-  asm("; Store Carry into Result\n\t"
-      "rol " ResultReg0 "\n\t"
-      "rol " ResultReg1 "\n\t"
-      "rol " ResultReg2 "\n\t"
-      "; And get Carry from Result. If set, it indicates we're done." ::
-          : ResultReg0, ResultReg1, ResultReg2);
-
-  // Reti if Carry is clear to continue receiving bits
-  asm goto("brcc %l[DoneSamplingPin]; Branch to reti if Carry cleared" : : : : DoneSamplingPin);
-
-  // We could invert the logic and use `brcs` instead, to get back to the main loop 1 cycle sooner.
-  // But in practice that doesn't matter as we always wait a loop cycles to see the transition.
-  // So instead we clean up 1 cycle faster when we're done!
-
-  if (AssemblyComments) asm("; DONE WITH REGISTERS: r30 r31 and Carry");
-
-  // Jump to the function [MakeResponse::fromResult()] that makes the result the getResponse() caller wants.
-  // When it returns, since we've mucked with the call stack, it'll return in place of getResponse().
-  if (AssemblyOptimizations::useRelativeJmpAtEndISR) {
-    asm("rjmp %x[Done]; Jump to MakeResponse::fromResult" : : [Done] "p"(&MakeResponse::fromResult));
-  } else {
-    asm("jmp  %x[Done]; Jump to MakeResponse::fromResult" : : [Done] "p"(&MakeResponse::fromResult));
-  }
-
-DoneSamplingPin:
-  asm("reti");
 }
 
 // Don't pollute
