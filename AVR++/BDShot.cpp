@@ -33,7 +33,6 @@ namespace AVR {
 namespace DShot {
 namespace BDShotTimer {
 namespace {
-u1 const prescaler = 1;
 static constexpr auto BitOverflowFlagMask = 1 << OCF0A;
 } // namespace
 
@@ -86,8 +85,9 @@ static inline void setShortTimeout() {
 static inline void start() {
   if (AssemblyComments) asm("; start()");
   // Both modes use same value
-  u1 wgm2 = 0;
-  TCCR0B = (wgm2 << WGM02) | (prescaler & 0b111) << CS00;
+  u1 const wgm2 = 0;
+  u1 const prescaler = 1;
+  TCCR0B = wgm2 << WGM02 | prescaler << CS00;
 }
 static inline void stop() {
   if (AssemblyComments) asm("; stop()");
