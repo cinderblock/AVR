@@ -111,19 +111,19 @@ static inline void init(u1 shortPeriod) {
 
 template <AVR::Ports Port, int Pin, AVR::DShot::Speeds Speed>
 void AVR::DShot::BDShot<Port, Pin, Speed>::exitBootloader() {
-    asm("; Waiting for bootloader exit");
+  asm("; Waiting for bootloader exit");
 
-    // Output needs to be low long enough to get out of bootloader and start main program
-    Parent::IO::clr();
-    Parent::IO::output();
+  // Output needs to be low long enough to get out of bootloader and start main program
+  Parent::IO::clr();
+  Parent::IO::output();
 
-    // TODO: This is a long delay. Allow other things to happen while we wait.
-    _delay_ms(BDShotConfig::exitBootloaderDelay);
+  // TODO: This is a long delay. Allow other things to happen while we wait.
+  _delay_ms(BDShotConfig::exitBootloaderDelay);
 
-    asm("; Done waiting for bootloader exit");
+  asm("; Done waiting for bootloader exit");
 
-    // Set output high
-    Parent::IO::set();
+  // Set output high
+  Parent::IO::set();
 }
 
 template <AVR::Ports Port, int Pin, AVR::DShot::Speeds Speed>
