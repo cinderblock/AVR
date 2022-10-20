@@ -189,12 +189,13 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
    * - Enable our Timer Overflow Interrupt
    * - Fast Loop waiting for Transition
    *   - On Transition
-   *     - Set new timer value (resync)
+   *     - Set new Timer Value (resync)
    * - On Timer Overflow Interrupt
    *   - Sample Pin State
    *   - Store Pin State
    *   - If 20 bits received
-   *     - Parse and return response
+   *     - Parse
+   *     - return Response
    *
    * Assumptions:
    * - All other interrupts are off
@@ -248,8 +249,6 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
   static constexpr Basic::u1 ExpectedBits = expectedNibbles * GCR::inBits;
 
   constexpr unsigned responseTimeoutTicks = (((long long)(F_CPU)) * responseTimeout) / 1e6;
-
-  constexpr unsigned responseTimeoutOverflows = responseTimeoutTicks >> 8;
 
   /**
    * Number of ticks from timer overflow to when we execute the instruction that samples the pin's input state.
@@ -375,14 +374,15 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
 
   if (AssemblyComments) asm("; Starting timer with max timeout");
 
+  constexpr unsigned counterUpperByte = responseTimeoutTicks >> 8;
+  u1 overflowsWhileWaiting = counterUpperByte + 1;
+
+  static_assert(counterUpperByte < u4(1) << (8 * sizeof(overflowsWhileWaiting)),
+                "counterUpperByte is too large for this implementation");
+
   BDShotTimer::setMaxTimeout();
   BDShotTimer::setCounter(u1(-responseTimeoutTicks));
   BDShotTimer::start();
-
-  u1 overflowsWhileWaiting = responseTimeoutOverflows;
-
-  static_assert(responseTimeoutOverflows < u4(1) << (8 * sizeof(overflowsWhileWaiting)),
-                "responseTimeoutOverflows is too large for this implementation");
 
   if (AssemblyComments) asm("; Waiting for first transition");
 
@@ -393,7 +393,7 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
     if (!BDShotTimer::hasOverflowFlagged()) continue;
     // If timer overflows, see if we've overflowed enough to know we're not getting a response.
 
-    if (!overflowsWhileWaiting--) {
+    if (!--overflowsWhileWaiting) {
       if (AssemblyComments) asm("; Return timeout");
       // Timeout waiting for response
       return AVR::DShot::Response::Error::ResponseTimeout;
