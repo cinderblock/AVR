@@ -139,20 +139,20 @@ void AVR::DShot::BDShot<Port, Pin, Speed>::init() {
 // Order/adjacency does not matter.
 // We'll use these to store the response as we read it.
 // Since no other code is running during the read, we don't need to protect these registers either.
-#define Result0Reg "r18"
-#define Result1Reg "r19"
-#define Result2Reg "r20"
+#define ResultReg0 "r18"
+#define ResultReg1 "r19"
+#define ResultReg2 "r20"
 
-static_assert(!Const::equal(Result0Reg, Result1Reg), "Result0Reg must not be equal to Result1Reg");
-static_assert(!Const::equal(Result1Reg, Result2Reg), "Result1Reg must not be equal to Result2Reg");
-static_assert(!Const::equal(Result2Reg, Result0Reg), "Result2Reg must not be equal to Result0Reg");
+static_assert(!Const::equal(ResultReg0, ResultReg1), "ResultReg0 must not be equal to ResultReg1");
+static_assert(!Const::equal(ResultReg1, ResultReg2), "ResultReg1 must not be equal to ResultReg2");
+static_assert(!Const::equal(ResultReg2, ResultReg0), "ResultReg2 must not be equal to ResultReg0");
 
 #define CheckRegister(n)                                                                                               \
-  static_assert(!Const::equal(Result##n##Reg, "r0"), "Result" #n "Reg must not be __tmp_reg__");                       \
-  static_assert(!Const::equal(Result##n##Reg, "r1"), "Result" #n "Reg must not be __zero_reg__");                      \
-  static_assert(!Const::equal(Result##n##Reg, "r30"), "Result" #n "Reg must not be Z register");                       \
-  static_assert(!Const::equal(Result##n##Reg, "r31"), "Result" #n "Reg must not be Z register");                       \
-  static_assert(!Const::equal(Result##n##Reg, "r24"), "Result" #n "Reg must not be a register that GCC uses");
+  static_assert(!Const::equal(ResultReg##n, "r0"), "ResultReg" #n " must not be __tmp_reg__");                         \
+  static_assert(!Const::equal(ResultReg##n, "r1"), "ResultReg" #n " must not be __zero_reg__");                        \
+  static_assert(!Const::equal(ResultReg##n, "r30"), "ResultReg" #n " must not be Z register");                         \
+  static_assert(!Const::equal(ResultReg##n, "r31"), "ResultReg" #n " must not be Z register");                         \
+  static_assert(!Const::equal(ResultReg##n, "r24"), "ResultReg" #n " must not be a register that GCC uses");
 
 CheckRegister(0);
 CheckRegister(1);
@@ -426,23 +426,23 @@ AVR::DShot::Response AVR::DShot::BDShot<Port, Pin, Speed>::getResponse() {
 
   if (AVR::DShot::BDShotConfig::AssemblyOptimizations::saveResultRegisters) {
     // Save the contents of the call-saved result registers
-    asm("push " Result0Reg);
-    asm("push " Result1Reg);
-    asm("push " Result2Reg);
+    asm("push " ResultReg0);
+    asm("push " ResultReg1);
+    asm("push " ResultReg2);
   }
 
   if (AssemblyComments)
-    asm("; Setting up our magic registers: " Result0Reg " " Result1Reg " " Result2Reg " r30 r31 or Carry\n\t");
+    asm("; Setting up our magic registers: " ResultReg0 " " ResultReg1 " " ResultReg2 " r30 r31 or Carry\n\t");
 
-  asm("ldi " Result0Reg ", %0 ; result0" ::"M"(FinishedMarker >> (8 * 0)) : Result0Reg); // lsb
-  asm("ldi " Result1Reg ", %0 ; result1" ::"M"(FinishedMarker >> (8 * 1)) : Result1Reg);
-  asm("ldi " Result2Reg ", %0 ; result2" ::"M"(FinishedMarker >> (8 * 2)) : Result2Reg); // msb
+  asm("ldi " ResultReg0 ", %0 ; result0" ::"M"(FinishedMarker >> (8 * 0)) : ResultReg0); // lsb
+  asm("ldi " ResultReg1 ", %0 ; result1" ::"M"(FinishedMarker >> (8 * 1)) : ResultReg1);
+  asm("ldi " ResultReg2 ", %0 ; result2" ::"M"(FinishedMarker >> (8 * 2)) : ResultReg2); // msb
 
   // Make sure Carry starts in expected state
   asm("clc \t;Clear Carry Flag");
 
   if (AssemblyComments)
-    asm("; DON'T MESS WITH REGISTERS: " Result0Reg " " Result1Reg " " Result2Reg " r30 r31 or Carry\n\t");
+    asm("; DON'T MESS WITH REGISTERS: " ResultReg0 " " ResultReg1 " " ResultReg2 " r30 r31 or Carry\n\t");
 
   BDShotTimer::enableOverflowInterrupt();
 
@@ -528,41 +528,41 @@ static AVR::DShot::Response fromResult() {
 
   Basic::u1 n0, n1, n2, n3;
 
-  if (AssemblyComments) asm("; NOW WE GET TO USE OUR REGISTERS: " Result0Reg " " Result1Reg " " Result2Reg);
+  if (AssemblyComments) asm("; NOW WE GET TO USE OUR REGISTERS: " ResultReg0 " " ResultReg1 " " ResultReg2);
 
   asm(
       // First we undo the shifting
 
       // Use r24 instead of __temp_reg__ because we can
 
-      "mov  " /*        */ "r24, " Result2Reg "\t; Copy byte 2\n\t"
+      "mov  " /*        */ "r24, " ResultReg2 "\t; Copy byte 2\n\t"
       "lsr  " /*        */ "r24" /*        */ "\t; Shift the copy\n\t"
-      "eor  " Result2Reg ", r24" /*        */ "\t; XOR the copy back\n\t"
+      "eor  " ResultReg2 ", r24" /*        */ "\t; XOR the copy back\n\t"
 
-      "mov  " /*        */ "r24, " Result1Reg "\t; Copy byte 1\n\t"
+      "mov  " /*        */ "r24, " ResultReg1 "\t; Copy byte 1\n\t"
       "ror  " /*        */ "r24" /*        */ "\t; Shift the copy\n\t"
-      "eor  " Result1Reg ", r24" /*        */ "\t; XOR the copy back\n\t"
+      "eor  " ResultReg1 ", r24" /*        */ "\t; XOR the copy back\n\t"
 
-      "mov  " /*        */ "r24, " Result0Reg "\t; Copy byte 0\n\t"
+      "mov  " /*        */ "r24, " ResultReg0 "\t; Copy byte 0\n\t"
       "ror  " /*        */ "r24" /*        */ "\t; Shift the copy\n\t"
-      "eor  " Result0Reg ", r24" /*        */ "\t; XOR the copy back\n\t"
+      "eor  " ResultReg0 ", r24" /*        */ "\t; XOR the copy back\n\t"
 
       // Now we turn 3 bytes into 4 quintets
 
       // Layout:                           Result 2 | Result 1 | Result 0|Carry
-      "mov  r24, " /**/ Result0Reg /**/ "\t;   3333  3222 2211  1110 0000 x\n\t" // n0 is ready, move to r24 for later.
+      "mov  r24, " /**/ ResultReg0 /**/ "\t;   3333  3222 2211  1110 0000 x\n\t" // n0 is ready, move to r24 for later.
 
-      "rol  " /**/ Result1Reg /**/ /**/ "\t;   3333  2222 211x  1110 0000 3\n\t"
-      "rol  " Result2Reg /**/ /**/ /**/ "\t; 3 3333  2222 211x  1110 0000 x\n\t" // n3 is ready in Result2Reg for later.
+      "rol  " /**/ ResultReg1 /**/ /**/ "\t;   3333  2222 211x  1110 0000 3\n\t"
+      "rol  " ResultReg2 /**/ /**/ /**/ "\t; 3 3333  2222 211x  1110 0000 x\n\t" // n3 is ready in ResultReg2 for later.
 
-      "ror  " /**/ Result1Reg /**/ /**/ "\t; 3 3333  x222 2211  1110 0000 x\n\t"
-      "ror  " /**/ Result1Reg /**/ /**/ "\t; 3 3333  xx22 2221  1110 0000 1\n\t"
-      "ror  " /**/ /**/ Result0Reg /**/ "\t; 3 3333  xx22 2221  1111 0000 0\n\t"
-      "ror  " /**/ Result1Reg /**/ /**/ "\t; 3 3333  xxx2 2222  1111 0000 1\n\t" // n2 is ready in Result1Reg for later.
+      "ror  " /**/ ResultReg1 /**/ /**/ "\t; 3 3333  x222 2211  1110 0000 x\n\t"
+      "ror  " /**/ ResultReg1 /**/ /**/ "\t; 3 3333  xx22 2221  1110 0000 1\n\t"
+      "ror  " /**/ /**/ ResultReg0 /**/ "\t; 3 3333  xx22 2221  1111 0000 0\n\t"
+      "ror  " /**/ ResultReg1 /**/ /**/ "\t; 3 3333  xxx2 2222  1111 0000 1\n\t" // n2 is ready in ResultReg1 for later.
 
-      "andi " /**/ /**/ Result0Reg ",0xf0\t; 3 3333  xxx2 2222  1111 xxxx 1\n\t" // Ensure lower nibble is 0
-      "adc  " /**/ /**/ Result0Reg ",r1  \t; 3 3333  xxx2 2222  1111 xxx1 x\n\t" // Add carry to lower nibble
-      "swap " /**/ /**/ Result0Reg /**/ "\t; 3 3333  xxx2 2222  xxx1 1111 x\n\t" // n1 is ready in Result0Reg for later.
+      "andi " /**/ /**/ ResultReg0 ",0xf0\t; 3 3333  xxx2 2222  1111 xxxx 1\n\t" // Ensure lower nibble is 0
+      "adc  " /**/ /**/ ResultReg0 ",r1  \t; 3 3333  xxx2 2222  1111 xxx1 x\n\t" // Add carry to lower nibble
+      "swap " /**/ /**/ ResultReg0 /**/ "\t; 3 3333  xxx2 2222  xxx1 1111 x\n\t" // n1 is ready in ResultReg0 for later.
 
       // Decode the GCR encoded quintets into nibbles
       // We don't need to worry about trash in the upper nibbles because decodeNibble() masks them out
@@ -570,29 +570,29 @@ static AVR::DShot::Response fromResult() {
       "call %x[decodeNibble]\t; Decode nibbles\n\t"
       "mov  %[n0], r24\n\t" // n0 was in r24 already
 
-      "mov  r24, " /**/ /**/ Result0Reg "\n\t"
+      "mov  r24, " /**/ /**/ ResultReg0 "\n\t"
       "call %x[decodeNibble]\t; Decode nibbles\n\t"
-      "mov  %[n1], r24\n\t" // n1 was in Result0Reg
+      "mov  %[n1], r24\n\t" // n1 was in ResultReg0
 
-      "mov  r24, " /**/ Result1Reg /**/ "\n\t"
+      "mov  r24, " /**/ ResultReg1 /**/ "\n\t"
       "call %x[decodeNibble]\t; Decode nibbles\n\t"
-      "mov  %[n2], r24\n\t" // n2 was in Result1Reg
+      "mov  %[n2], r24\n\t" // n2 was in ResultReg1
 
-      "mov  r24, " Result2Reg /**/ /**/ "\n\t"
+      "mov  r24, " ResultReg2 /**/ /**/ "\n\t"
       "call %x[decodeNibble]\t; Decode nibbles\n\t"
-      "mov  %[n3], r24\n\t" // n3 was in Result2Reg
+      "mov  %[n3], r24\n\t" // n3 was in ResultReg2
 
       // Let the compiler do the rest
 
       : [n0] "=r"(n0), [n1] "=r"(n1), [n2] "=r"(n2), [n3] "=r"(n3)
       : [decodeNibble] "p"(&decodeNibble)
-      : "r24", Result0Reg, Result1Reg, Result2Reg);
+      : "r24", ResultReg0, ResultReg1, ResultReg2);
 
   if (AVR::DShot::BDShotConfig::AssemblyOptimizations::saveResultRegisters) {
     // Restore the contents of the call-saved result registers
-    asm("pop " Result2Reg);
-    asm("pop " Result1Reg);
-    asm("pop " Result0Reg);
+    asm("pop " ResultReg2);
+    asm("pop " ResultReg1);
+    asm("pop " ResultReg0);
   }
 
   if (AVR::DShot::BDShotConfig::AssemblyOptimizations::saveZRegister) {
@@ -656,11 +656,11 @@ void AVR::DShot::BDShot<Port, Pin, Speed>::ReadBitISR() {
   if (BDShotConfig::ResetWatchdog::SampledBit) asm("wdr");
 
   asm("; Store Carry into Result\n\t"
-      "rol " Result0Reg "\n\t"
-      "rol " Result1Reg "\n\t"
-      "rol " Result2Reg "\n\t"
+      "rol " ResultReg0 "\n\t"
+      "rol " ResultReg1 "\n\t"
+      "rol " ResultReg2 "\n\t"
       "; And get Carry from Result. If set, it indicates we're done." ::
-          : Result0Reg, Result1Reg, Result2Reg);
+          : ResultReg0, ResultReg1, ResultReg2);
 
   // Reti if Carry is clear to continue receiving bits
   asm goto("brcc %l[DoneSamplingPin]; Branch to reti if Carry cleared" : : : : DoneSamplingPin);
@@ -684,9 +684,9 @@ DoneSamplingPin:
 }
 
 // Don't pollute
-#undef Result0Reg
-#undef Result1Reg
-#undef Result2Reg
+#undef ResultReg0
+#undef ResultReg1
+#undef ResultReg2
 
 // We need to mark this as Naked for maximum performance because the generated entry/exit sequences are unnecessary in
 // our known execution path.
