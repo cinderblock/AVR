@@ -23,23 +23,26 @@ jobs:
       - name: Install AVR toolchain
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends gcc-avr avr-libc binutils-avr
+          sudo apt-get install -y --no-install-recommends gcc-avr avr-libc binutils-avr make
 
       - name: Toolchain versions
         run: |
           avr-gcc --version | head -1
           avr-g++ --version | head -1
           dpkg -s avr-libc | grep '^Version'
+          make --version | head -1
 
       - name: Compile each .cpp standalone (-c, mmcu=${{ matrix.mcu }})
         run: |
           set -e
           shopt -s nullglob
           for f in AVR++/*.cpp; do
-            # BDShot.cpp references `BDShotConfig::Debug::Pin` which the
-            # consumer is expected to declare. Can't compile standalone.
+            # BDShot.cpp is not a standalone translation unit — it's
+            # `#include`d by the consumer (along with an explicit template
+            # instantiation, per the README). Exercised separately below
+            # via tests/bdshot_compile_test.cpp.
             case "$f" in
-              AVR++/BDShot.cpp) echo "::notice::skipping $f (needs user config)"; continue;;
+              AVR++/BDShot.cpp) echo "::notice::skipping $f (intended to be included, not compiled standalone)"; continue;;
             esac
             echo "::group::$f"
             avr-g++ -c "$f" -o /dev/null \
@@ -60,6 +63,21 @@ jobs:
       - name: Compile aggregate header check
         run: |
           avr-g++ -c tests/all_headers.cpp -o /dev/null \
+            -mmcu=${{ matrix.mcu }} \
+            -std=gnu++17 \
+            -fno-exceptions \
+            -funsigned-char \
+            -funsigned-bitfields \
+            -fpack-struct \
+            -fshort-enums \
+            -Os \
+            -I . \
+            -DF_CPU=16000000UL \
+            -Wall
+
+      - name: Compile BDShot test (user-facing #include <AVR++/BDShot.cpp> pattern)
+        run: |
+          avr-g++ -c tests/bdshot_compile_test.cpp -o /dev/null \
             -mmcu=${{ matrix.mcu }} \
             -std=gnu++17 \
             -fno-exceptions \
