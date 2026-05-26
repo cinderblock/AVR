@@ -119,19 +119,22 @@ typedef union {
   u1 byte;
 } SRBt;
 
-constexpr volatile MUXt *const MUX = (volatile MUXt *const)&ADMUX;
+// libc register macros (`SPCR`, `ADMUX`, ...) expand to
+// `*(volatile uint8_t *)(addr)`, so `&FOO` is a reinterpret_cast in
+// disguise and isn't constexpr. Use C++17 inline variables instead.
+inline volatile MUXt *const MUX = (volatile MUXt *const)&ADMUX;
 
-constexpr volatile SRAt *const ControlStatusRegisterA = (volatile SRAt *const)&ADCSRA;
+inline volatile SRAt *const ControlStatusRegisterA = (volatile SRAt *const)&ADCSRA;
 
-constexpr volatile u1 *const DataRegisterLow = &ADCL;
-constexpr volatile u1 *const DataRegisterHigh = &ADCH;
-constexpr volatile u2 *const DataRegister = &ADCW;
+inline volatile u1 *const DataRegisterLow = &ADCL;
+inline volatile u1 *const DataRegisterHigh = &ADCH;
+inline volatile u2 *const DataRegister = &ADCW;
 
-constexpr volatile SRBt *const ControlStatusRegisterB = (volatile SRBt *const)&ADCSRB;
+inline volatile SRBt *const ControlStatusRegisterB = (volatile SRBt *const)&ADCSRB;
 
-constexpr volatile u1 *const DigitalInputDisableRegister0 = &DIDR0;
-constexpr volatile u1 *const DigitalInputDisableRegister1 = &DIDR1;
-constexpr volatile u2 *const DigitalInputDisableRegister = (volatile u2 *const)&DIDR0;
+inline volatile u1 *const DigitalInputDisableRegister0 = &DIDR0;
+inline volatile u1 *const DigitalInputDisableRegister1 = &DIDR1;
+inline volatile u2 *const DigitalInputDisableRegister = (volatile u2 *const)&DIDR0;
 
 class RegularInput {
   const u1 mux;

@@ -112,7 +112,9 @@ typedef union {
   u1 byte;
 } ARt;
 
-constexpr volatile u1 *const BR = &TWBR;
+// `&TWBR` etc are reinterpret_casts in disguise (libc macros), not
+// constexpr. Use C++17 inline variables instead.
+inline volatile u1 *const BR = &TWBR;
 
 /**
  * The TWCR is used to control the operation of the TWI. It is used to enable
@@ -122,11 +124,11 @@ constexpr volatile u1 *const BR = &TWBR;
  * written to the TWDR. It also indicates a write collision if data is
  * attempted written to TWDR while the register is inaccessible.
  */
-constexpr volatile CRt *const CR = (volatile CRt *const)&TWCR;
-constexpr volatile SRt *const SR = (volatile SRt *const)&TWSR;
-constexpr volatile u1 *const DR = &TWDR;
-constexpr volatile ARt *const AR = (volatile ARt *const)&TWAR;
-constexpr volatile u1 *const AMR = &TWAMR;
+inline volatile CRt *const CR = (volatile CRt *const)&TWCR;
+inline volatile SRt *const SR = (volatile SRt *const)&TWSR;
+inline volatile u1 *const DR = &TWDR;
+inline volatile ARt *const AR = (volatile ARt *const)&TWAR;
+inline volatile u1 *const AMR = &TWAMR;
 
 enum class Status : u1 {
   MasterStartTransmitted = 0x08,

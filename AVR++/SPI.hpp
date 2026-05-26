@@ -40,9 +40,12 @@ typedef union {
   u1 byte;
 } SRt;
 
-constexpr volatile CRt *const CR = (volatile CRt *const)&SPCR;
-constexpr volatile SRt *const SR = (volatile SRt *const)&SPSR;
-constexpr volatile u1 *const DR = &SPDR;
+// `&SPCR` and friends are reinterpret_casts in disguise (libc macros expand
+// to `*(volatile uint8_t *)(addr)`), which aren't constexpr. Use C++17
+// inline variables — runtime-initialized once, no linker duplicates.
+inline volatile CRt *const CR = (volatile CRt *const)&SPCR;
+inline volatile SRt *const SR = (volatile SRt *const)&SPSR;
+inline volatile u1 *const DR = &SPDR;
 
 #ifdef __AVR_ATmega32U4__
 using SS = IOpin<Ports::B, 0>;
