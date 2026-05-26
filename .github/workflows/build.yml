@@ -1,0 +1,65 @@
+name: Build
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        mcu: [atmega32u4, atmega328p, atmega2560]
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install AVR toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends gcc-avr avr-libc binutils-avr
+
+      - name: Toolchain versions
+        run: |
+          avr-gcc --version | head -1
+          avr-g++ --version | head -1
+          dpkg -s avr-libc | grep '^Version'
+
+      - name: Compile each .cpp standalone (-c, mmcu=${{ matrix.mcu }})
+        run: |
+          set -e
+          shopt -s nullglob
+          for f in AVR++/*.cpp; do
+            echo "::group::$f"
+            avr-g++ -c "$f" -o /dev/null \
+              -mmcu=${{ matrix.mcu }} \
+              -std=gnu++17 \
+              -fno-exceptions \
+              -funsigned-char \
+              -funsigned-bitfields \
+              -fpack-struct \
+              -fshort-enums \
+              -Os \
+              -I . \
+              -DF_CPU=16000000UL \
+              -Wall
+            echo "::endgroup::"
+          done
+
+      - name: Compile aggregate header check
+        run: |
+          avr-g++ -c tests/all_headers.cpp -o /dev/null \
+            -mmcu=${{ matrix.mcu }} \
+            -std=gnu++17 \
+            -fno-exceptions \
+            -funsigned-char \
+            -funsigned-bitfields \
+            -fpack-struct \
+            -fshort-enums \
+            -Os \
+            -I . \
+            -DF_CPU=16000000UL \
+            -Wall
