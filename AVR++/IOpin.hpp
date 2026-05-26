@@ -176,7 +176,7 @@ public:
   inline bool operator=(bool v) {
     if (!mask) {
       asm("; IOpin::operator=(bool v) dummy. %[PORT]" ::[PORT] "I"(Port));
-      return;
+      return v;
     }
 
     set(v);
@@ -189,7 +189,7 @@ public:
   inline bool operator++(int) {
     if (!mask) {
       asm("; IOpin::operator++(int) dummy. %[PORT]" ::[PORT] "I"(Port));
-      return;
+      return false;
     }
 
     tgl();
@@ -310,7 +310,9 @@ public:
 
   inline static void open() {
     input();
-    if (pullUp) { set(); }
+    // Explicit qualification: the local set(bool) hides the inherited set()
+    // under C++17 name lookup. Force lookup in the base class.
+    if (pullUp) { IOpin<Port, Pin>::set(); }
   }
 
   inline static void tgl() {
